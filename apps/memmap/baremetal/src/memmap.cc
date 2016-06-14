@@ -12,91 +12,75 @@
 #include <ebbrt/VMem.h>
 
 
+
 class NewPageFaultHandler : public ebbrt::VMemAllocator::PageFaultHandler {
   ebbrt::Pfn page_;
   uint64_t pageLen;
+  uint64_t granularity;
+  uint64_t ps = ebbrt::pmem::kPageSize;
 public:
   void setPage(ebbrt::Pfn page, uint64_t length) {
     page_ = page;
     pageLen = length;
-  }
-  void HandleFault(ebbrt::idt::ExceptionFrame* ef, uintptr_t faulted_address) override {
-    ebbrt::kprintf("faulted address %#llx\n", faulted_address);
-    ebbrt::kprintf("paddr = %#llx\n", page_.ToAddr());
-    auto ps = ebbrt::pmem::kPageSize;
-    auto vpage = ebbrt::Pfn::Down(faulted_address);
-    int c = 0;
-    ebbrt::kprintf("page length %i\n", pageLen);
     if (pageLen >= 1<<21){
       ps = 1<<21;
     }
+    granularity = pageLen/ps;
+  }
+  void HandleFault(ebbrt::idt::ExceptionFrame* ef, uintptr_t faulted_address) override {
+    ebbrt::kprintf("faulted address %#llx\n", faulted_address);
+    //    ebbrt::kprintf("paddr = %#llx\n", page_.ToAddr());
+    auto vpage = ebbrt::Pfn::Down(faulted_address);
+    //    int c = 0;
+    //    ebbrt::kprintf("page length %i\n", pageLen);
     auto page = page_;
-    for (uint64_t i = 0; i < (pageLen/ps); i++){
-	ebbrt::vmem::MapMemory(vpage, page_, ps);
+    for (uint64_t i = 0; i < granularity; i++){
+	ebbrt::vmem::MapMemory(vpage, page, ps);
 	vpage = ebbrt::Pfn::Down(vpage.ToAddr() + ps);
 	page = ebbrt::Pfn::Down(page.ToAddr() + ps);
-	c++;
+	//	c++;
      }
-     ebbrt::kprintf("called MapMemory for %i times.\n", c);
+    //     ebbrt::kprintf("called MapMemory for %i times.\n", c);
   }
 
 };
-
+// a function to be called to invoke events in other cores
 void test(uintptr_t addr);
-
-void fillInValue(int value, int iteration, uintptr_t ptr);
+// this function use a for loop to fill the physical page with desireed value
+void fillInValue(int value, int iteration, volatile uint32_t * ptr);
+//this function use a for loop to lazly invoked the page fault handler
+void lazyMap(int value, int iteration, int multiplier, volatile uint32_t * ptr);
 
 void AppMain() { 
-  int l = 9;
-  int mul = 3;
-  auto ps = ebbrt::pmem::kPageSize;
-  int iteration = ((int)ps*(1<<l))/4;
-  int v = 0xDEADBEEF;
-  int unmap = 1;
+  int len = 9; // number of pages need to be allocated physical allocator
+  int mul = 3; // multipler for how many times more virtual pages to be allocated
+  auto  ps = ebbrt::pmem::kPageSize; // page size by default
+  int iteration = ((int)ps*(1<<len))/4; // number of iterations for filling the page
+  int v = 0xDEADBEEF; // value that can be filled into the page
+  int unmap = 1;//a flag for unmaping
 
   printer->Print("MEMMAP BACKEND UP.\n"); 
   printer->Print("START TO ALLOCATE 1 PHYSICAL PAGES.\n");
-  auto pfn = ebbrt::page_allocator->Alloc(l);
+  auto pfn = ebbrt::page_allocator->Alloc(len);
   auto pptr = (volatile uint32_t *)pfn.ToAddr();
-
-  ebbrt::kprintf("physical address allocated 0x%lx\n", (uintptr_t)pptr);
   printer->Print("FILLING UP THE ADDRESS\n");
-  ebbrt::kprintf("interations: %i\n", iteration);
-  auto pcounter = 0;
-  ebbrt::kprintf("value filled: 0x%x\n", v);
-  for(int i = 0; i < iteration; i++){
-    *pptr = v;
-    if (*pptr == 0XDEADBEEF){
-      pcounter++;
-    }
-    pptr++;
-  }
-  ebbrt::kprintf("number of space filled: %i\n", pcounter);
+  fillInValue(v, iteration, pptr);
 
   printer->Print("START TO ALLOCATE VIRTUAL PAGE.\n");
-  //dont know how to insert page fault handler
+  //create the instances of the page fault handler
+  //and allocate the virtual memory pages which will hit page fault when dereferrenced
   auto pf = std::make_unique<NewPageFaultHandler>();
-  pf->setPage(pfn, ps*(1<<l));
-  auto vfn = ebbrt::vmem_allocator->Alloc(mul*(1<<l), std::move(pf));
-
+  pf->setPage(pfn, ps*(1<<len));
+  auto vfn = ebbrt::vmem_allocator->Alloc(mul*(1<<len), std::move(pf));
   auto addr = vfn.ToAddr();
   auto ptr = (volatile uint32_t *)addr;
-  ebbrt::kprintf("Virtual address allocated 0x%lx\n", (uintptr_t)ptr);
-  auto counter = 0;
-  for(int i = 0; i < mul * iteration; i++){
-    volatile auto val = *ptr;
-    if (val == 0xDEADBEEF){
-      counter++; 
-    }
-    ptr++;
-  }
-  ebbrt::kprintf("virtual region filled: %i\n", counter);
-  ebbrt::kprintf("number of iteration: %i\n", mul*iteration);
+  lazyMap(v, iteration, mul, ptr);
+
   if (unmap == 1){
   printer->Print("BEGIN TO UNMAP THE VIRTUAL PAGE.\n");
-
+  //start to unmap the virtual region by traversing the page talbes and delete the entries
   TraversePageTable(
-		    ebbrt::vmem::GetPageTableRoot(), addr, addr + mul*(1 << l)*ps, 0, 4,
+       ebbrt::vmem::GetPageTableRoot(), addr, addr + mul*(1 << len)*ps, 0, 4,
        [=](ebbrt::vmem::Pte& entry, uint64_t base_virt, size_t level) {
         kassert(entry.Present());
         entry.Clear();
@@ -110,14 +94,9 @@ void AppMain() {
       });
   };
   
-
-  ebbrt::kprintf("paddr = %#llx\n", pfn.ToAddr());
-  pptr = (volatile uint32_t *)pfn.ToAddr();
-  ebbrt::kprintf("value in physical address: 0x%x\n", *pptr);
-  ebbrt::kprintf("addr = 0x%llx\n", addr);
   ptr = (volatile uint32_t *)addr;
-  volatile auto val = *ptr;
-  ebbrt::kprintf("Read value: 0x%x\n", val);
+  ebbrt::kbugon( (int)*ptr != v, "wrong value for remap the virtual region!!\n");
+  // the following is for spawning different events on other cores.
   //  auto f = [addr]() {
   //  ebbrt::kprintf("Hello from %u\n", (size_t)ebbrt::Cpu::GetMine());
   //  test(addr);
@@ -132,13 +111,19 @@ void test(uintptr_t addr) {
   (void)*ptr;  
 }
 
-void fillInValue(int value, int iteration, uintptr_t ptr){
+void fillInValue(int value, int iteration, volatile uint32_t * ptr){
   for(int i = 0; i < iteration; i++){
-    *pptr = v;
-    if (*pptr == 0XDEADBEEF){
-      pcounter++;
-    }
-    pptr++;
+    *ptr = value;
+    ptr++;
+  }
+
+}
+
+void lazyMap(int value, int iteration,int multiplier,  volatile uint32_t *ptr){
+  for(int i = 0; i < multiplier * iteration; i++){
+    volatile auto val = *ptr;
+    ebbrt::kbugon( (int)val != value, "wrong value in the virtual memory!!\n");
+    ptr++;
   }
 
 }
