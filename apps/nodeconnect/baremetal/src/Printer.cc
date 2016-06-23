@@ -6,7 +6,7 @@
 
 #include <ebbrt/LocalIdMap.h>
 #include <ebbrt/GlobalIdMap.h>
-//#include <iostream>
+
 #include <ebbrt/UniqueIOBuf.h>
 
 EBBRT_PUBLISH_TYPE(, Printer);
@@ -58,5 +58,12 @@ void Printer::Print(const char* str) {
 void Printer::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
                              std::unique_ptr<ebbrt::IOBuf>&& buffer) {
   //throw std::runtime_error("Printer: Received message unexpectedly!");
-    ebbrt::kprintf("recieved something\n");
+  
+  auto output = std::string(reinterpret_cast<const char*>(buffer->Data()),buffer->Length());
+  auto p = nid.ToString().c_str();
+  auto rnid = std::atoi(output.c_str());
+  ebbrt::kprintf("recieved something from nid: %s\n", p);
+  ebbrt::kprintf("recieved message: %s\n", output.c_str());
+  ebbrt::kprintf("recieved message: 0x%x\n", rnid);
+
 }
