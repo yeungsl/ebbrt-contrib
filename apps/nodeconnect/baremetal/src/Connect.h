@@ -2,8 +2,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
-#ifndef APPS_NODECONNECT_BAREMETAL_SRC_PRINTER_H_
-#define APPS_NODECONNECT_BAREMETAL_SRC_PRINTER_H_
+#ifndef APPS_NODECONNECT_BAREMETAL_SRC_CONNECT_H_
+#define APPS_NODECONNECT_BAREMETAL_SRC_CONNECT_H_
 
 #include <string>
 
@@ -27,4 +27,4 @@ class Worker : public ebbrt::Messagable<Worker> {
 
 constexpr auto worker = ebbrt::EbbRef<Worker>(kWorkerEbbId);
 
-#endif  // APPS_NODECONNECT_BAREMETAL_SRC_PRINTER_H_
+#endif  // APPS_NODECONNECT_BAREMETAL_SRC_CONNECT_H_

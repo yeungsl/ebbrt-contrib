@@ -16,7 +16,7 @@
 #include <ebbrt/UniqueIOBuf.h>
 
 #include "Printer.h"
-
+#include "Connect.h"
 int main(int argc, char** argv) {
   auto bindir = boost::filesystem::system_complete(argv[0]).parent_path() /
                 "/bm/nodeconnect.elf32";
