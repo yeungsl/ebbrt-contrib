@@ -4,6 +4,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "Printer.h"
-
+#include "Connect.h"
 void AppMain() { //printer->Print("NODECONNECT BACKEND UP.\n"); 
+   worker->Send("NODECONNCET TRIES TO CONNECT.\n");
+
 }
