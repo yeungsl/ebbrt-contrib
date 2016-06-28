@@ -6,6 +6,6 @@
 #include "Printer.h"
 #include "Connect.h"
 void AppMain() { //printer->Print("NODECONNECT BACKEND UP.\n"); 
-   worker->Send("NODECONNCET TRIES TO CONNECT.\n");
+  //     worker->Send("NODECONNCET TRIES TO CONNECT.\n");
 
 }

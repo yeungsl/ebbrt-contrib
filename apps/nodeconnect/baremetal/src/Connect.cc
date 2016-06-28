@@ -11,8 +11,8 @@
 
 EBBRT_PUBLISH_TYPE(, Worker);
 
-Worker::Worker(ebbrt::Messenger::NetworkId nid)
-    : Messagable<Worker>(kWorkerEbbId), remote_nid_(std::move(nid)) {}
+Worker::Worker()
+    : Messagable<Worker>(kWorkerEbbId) {}
 
 Worker& Worker::HandleFault(ebbrt::EbbId id) {
   {
@@ -26,13 +26,10 @@ Worker& Worker::HandleFault(ebbrt::EbbId id) {
   }
 
   ebbrt::EventManager::EventContext context;
-  auto f = ebbrt::global_id_map->Get(id);
   Worker* p;
-  f.Then([&f, &context, &p](ebbrt::Future<std::string> inner) {
-    p = new Worker(ebbrt::Messenger::NetworkId(inner.Get()));
-    ebbrt::event_manager->ActivateContext(std::move(context));
-  });
-  ebbrt::event_manager->SaveContext(context);
+
+    p = new Worker();
+
   auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
   if (inserted) {
     ebbrt::EbbRef<Worker>::CacheRef(id, *p);
@@ -48,15 +45,15 @@ Worker& Worker::HandleFault(ebbrt::EbbId id) {
   return pr;
 }
 
-void Worker::Send(const char* str) {
+void Worker::Send(ebbrt::Messenger::NetworkId nid, const char* str) {
   auto len = strlen(str) + 1;
   auto buf = ebbrt::MakeUniqueIOBuf(len);
   snprintf(reinterpret_cast<char*>(buf->MutData()), len, "%s", str);
-  SendMessage(remote_nid_, std::move(buf));
+  SendMessage(nid, std::move(buf));
 }
 
 void Worker::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
                              std::unique_ptr<ebbrt::IOBuf>&& buffer) {
-  throw std::runtime_error("Printer: Received message unexpectedly!");
-  
+  //    throw std::runtime_error("Printer: Received message unexpectedly!");
+  ebbrt::kprintf("recieved message from: %s\n", nid.ToString().c_str());
 }

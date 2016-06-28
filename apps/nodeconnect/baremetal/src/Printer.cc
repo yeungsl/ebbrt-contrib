@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 #include "Printer.h"
-
+#include "Connect.h"
 #include <ebbrt/LocalIdMap.h>
 #include <ebbrt/GlobalIdMap.h>
 
@@ -76,6 +76,10 @@ void Printer::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
   ebbrt::kprintf("recieved something from nid: %s\n", p);
   ebbrt::kprintf("recieved message: %s\n", output.c_str());
   ebbrt::kprintf("recieved message: %s\n", rnid.ToString().c_str());
+  printer -> Print("TRY\n");
+  //  auto b = rnid.ToBytes();
+  //  worker -> Send(std::move(ebbrt::Messenger::NetworkId::FromBytes(reinterpret_cast<const unsigned char *>(b.c_str()), b.size())), "TRY\n");
 
-
+  worker -> Send(rnid,"TRY\n");
+  ebbrt::kprintf("Sent!\n");
 }

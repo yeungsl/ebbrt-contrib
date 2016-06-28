@@ -13,16 +13,13 @@
 
 class Worker : public ebbrt::Messagable<Worker> {
  public:
-  explicit Worker(ebbrt::Messenger::NetworkId nid);
+  explicit Worker();
 
   static Worker& HandleFault(ebbrt::EbbId id);
 
-  void Send(const char* string);
+  void Send(ebbrt::Messenger::NetworkId nid, const char* string);
   void ReceiveMessage(ebbrt::Messenger::NetworkId nid,
                       std::unique_ptr<ebbrt::IOBuf>&& buffer);
-
- private:
-  ebbrt::Messenger::NetworkId remote_nid_;
 };
 
 constexpr auto worker = ebbrt::EbbRef<Worker>(kWorkerEbbId);
