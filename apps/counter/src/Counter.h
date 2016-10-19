@@ -34,9 +34,11 @@ namespace Counter {
     void inc() { val_++; }
   };
 
-#ifdef __EBBRT_BM__
+#ifdef __ebbrt__
+
   __attribute__ ((unused)) static void Init() {}
 #else
+
   __attribute__ ((unused)) static void Init() {
     SharedCounter::Init().Block();
   }

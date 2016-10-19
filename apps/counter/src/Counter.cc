@@ -8,7 +8,8 @@
 
 #include "Counter.h"
 
-#ifndef __EBBRT_BM__
+#ifndef __ebbrt__
+
 ebbrt::Future<ebbrt::EbbRef<Counter::SharedCounter>>
 Counter::SharedCounter::Init()
 {

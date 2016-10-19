@@ -31,10 +31,18 @@ int main(int argc, char** argv) {
     sig.async_wait([&c](const boost::system::error_code& ec,
                         int signal_number) { c.io_service_.stop(); });
     Counter::Init();
+
+    Counter::theCounter->inc();
+    printf("0 FE:  Count=%d\n", Counter::theCounter->val());
+
     Printer::Init().Then([bindir](ebbrt::Future<void> f) {
       f.Get();
       ebbrt::node_allocator->AllocateNode(bindir.string());
+      Counter::theCounter->inc();
+      printf("0 FE:  Count=%d\n", Counter::theCounter->val());
     });
+
+
   }
   c.Run();
 
