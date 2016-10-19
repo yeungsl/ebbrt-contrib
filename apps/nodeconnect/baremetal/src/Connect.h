@@ -20,8 +20,11 @@ class Worker : public ebbrt::Messagable<Worker> {
   void Send(ebbrt::Messenger::NetworkId nid, const char* string);
   void ReceiveMessage(ebbrt::Messenger::NetworkId nid,
                       std::unique_ptr<ebbrt::IOBuf>&& buffer);
+  void Claim(uint32_t* addr, int iteration);
+  int Qury(uint32_t* addr);
 };
 
 constexpr auto worker = ebbrt::EbbRef<Worker>(kWorkerEbbId);
 
 #endif  // APPS_NODECONNECT_BAREMETAL_SRC_CONNECT_H_
+

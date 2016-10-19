@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/StaticEbbIds.h
+ebbrt/StaticIds.h
+-
+
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/baremetal/Printer.cc
+Printer.h
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/baremetal/Printer.h
+ebbrt/LocalIdMap.h
+-
+ebbrt/GlobalIdMap.h
+-
+ebbrt/UniqueIOBuf.h
+-
+
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/baremetal/Printer.h
+string
+-
+ebbrt/Message.h
+-
+../../src/StaticEbbIds.h
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/StaticEbbIds.h
+
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/baremetal/helloworld.cc
+Printer.h
+/home/yeungsl/ebbrt-contrib/apps/helloworld/src/baremetal/Printer.h
+

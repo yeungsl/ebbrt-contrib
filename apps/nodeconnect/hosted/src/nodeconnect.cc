@@ -34,8 +34,6 @@ int main(int argc, char** argv) {
       f.Get();
 
       auto ns = ebbrt::node_allocator->AllocateNode(bindir.string());
-
-
       ns.NetworkId().Then(
       [&](ebbrt::Future<ebbrt::Messenger::NetworkId> net_if) {
 	auto nid = net_if.Get();
@@ -50,8 +48,6 @@ int main(int argc, char** argv) {
       });
 
       });
-
-
 
     });
   }
