@@ -9,10 +9,12 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall -Werror")
 
 set(HOSTED_SOURCES
+      src/Counter.cc
       src/hosted/helloworld.cc
       src/hosted/Printer.cc)
 
 set(BAREMETAL_SOURCES
+      src/Counter.cc
       src/baremetal/helloworld.cc
       src/baremetal/Printer.cc)
 

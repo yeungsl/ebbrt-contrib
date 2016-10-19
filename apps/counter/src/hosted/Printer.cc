@@ -13,7 +13,6 @@ EBBRT_PUBLISH_TYPE(, Printer);
 Printer::Printer() : ebbrt::Messagable<Printer>(kPrinterEbbId) {}
 
 ebbrt::Future<void> Printer::Init() {
-  ebbrt::global_id_map->Set(kCounterEbbId, "1");
   return ebbrt::global_id_map->Set(
       kPrinterEbbId, ebbrt::messenger->LocalNetworkId().ToBytes());
 }

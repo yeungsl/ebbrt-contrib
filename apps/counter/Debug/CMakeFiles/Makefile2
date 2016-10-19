@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /home/yeungsl/ebbrt-contrib/apps/counter/Debug
 CMakeFiles/helloworld.dir/all:
 	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/depend
 	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/build
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles  1 2
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles  1 2 3
 	@echo "Built target helloworld"
 .PHONY : CMakeFiles/helloworld.dir/all
 
@@ -69,7 +69,7 @@ all: CMakeFiles/helloworld.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/helloworld.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles 3
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/helloworld.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles 0
 .PHONY : CMakeFiles/helloworld.dir/rule

@@ -4,6 +4,7 @@ SET(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 SET(CMAKE_DEPENDS_CHECK_CXX
+  "/home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc" "/home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles/helloworld.dir/src/Counter.cc.o"
   "/home/yeungsl/ebbrt-contrib/apps/counter/src/hosted/Printer.cc" "/home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o"
   "/home/yeungsl/ebbrt-contrib/apps/counter/src/hosted/helloworld.cc" "/home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o"
   )

@@ -4,5 +4,17 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "Printer.h"
+#include "../Counter.h"
 
-void AppMain() { }
+void AppMain() {
+
+  Counter::Init();
+
+  {
+    char str[80];
+    Counter::theCounter->inc();
+    snprintf(str, 80, "Hello World count=%d\n", 
+	       Counter::theCounter->val());
+    printer->Print(str);
+  }
+}

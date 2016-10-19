@@ -6,6 +6,36 @@
 
 #IncludeRegexTransform: 
 
+/home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc
+ebbrt/Runtime.h
+-
+ebbrt/EbbAllocator.h
+-
+ebbrt/EbbRef.h
+-
+ebbrt/LocalIdMap.h
+-
+ebbrt/GlobalIdMap.h
+-
+ebbrt/Debug.h
+-
+Counter.h
+/home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.h
+
+/home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.h
+ebbrt/Messenger.h
+-
+ebbrt/Runtime.h
+-
+ebbrt/Future.h
+-
+ebbrt/Buffer.h
+-
+ebbrt/Message.h
+-
+StaticEbbIds.h
+/home/yeungsl/ebbrt-contrib/apps/counter/src/StaticEbbIds.h
+
 /home/yeungsl/ebbrt-contrib/apps/counter/src/StaticEbbIds.h
 ebbrt/StaticIds.h
 -
@@ -21,4 +51,6 @@ ebbrt/Message.h
 /home/yeungsl/ebbrt-contrib/apps/counter/src/baremetal/helloworld.cc
 Printer.h
 /home/yeungsl/ebbrt-contrib/apps/counter/src/baremetal/Printer.h
+../Counter.h
+/home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.h
 

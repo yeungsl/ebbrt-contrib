@@ -111,6 +111,30 @@ helloworld/fast:
 	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/build
 .PHONY : helloworld/fast
 
+src/Counter.o: src/Counter.cc.o
+.PHONY : src/Counter.o
+
+# target to build an object file
+src/Counter.cc.o:
+	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/src/Counter.cc.o
+.PHONY : src/Counter.cc.o
+
+src/Counter.i: src/Counter.cc.i
+.PHONY : src/Counter.i
+
+# target to preprocess a source file
+src/Counter.cc.i:
+	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/src/Counter.cc.i
+.PHONY : src/Counter.cc.i
+
+src/Counter.s: src/Counter.cc.s
+.PHONY : src/Counter.s
+
+# target to generate assembly for a file
+src/Counter.cc.s:
+	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/src/Counter.cc.s
+.PHONY : src/Counter.cc.s
+
 src/hosted/Printer.o: src/hosted/Printer.cc.o
 .PHONY : src/hosted/Printer.o
 
@@ -168,6 +192,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... helloworld"
 	@echo "... rebuild_cache"
+	@echo "... src/Counter.o"
+	@echo "... src/Counter.i"
+	@echo "... src/Counter.s"
 	@echo "... src/hosted/Printer.o"
 	@echo "... src/hosted/Printer.i"
 	@echo "... src/hosted/Printer.s"

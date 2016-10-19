@@ -1,0 +1,24 @@
+#ifndef __COUNTER_H__
+#define __COUNTER_H__
+
+#include <ebbrt/Messenger.h>
+#include <ebbrt/Runtime.h>
+#include <ebbrt/Future.h>
+#include <ebbrt/Buffer.h>
+#include <ebbrt/Message.h>
+
+#include "StaticEbbIds.h"
+
+namespace Counter {
+  class SharedCounter {
+  private:
+    int val_;
+    SharedCounter() : val_(0) {}
+  public:
+    static SharedCounter * Create() { return new SharedCounter; }
+    int val() { return val_; }
+    void inc() { val_++; }
+  };
+};
+
+#endif 

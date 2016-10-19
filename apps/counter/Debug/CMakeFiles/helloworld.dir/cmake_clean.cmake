@@ -1,4 +1,5 @@
 FILE(REMOVE_RECURSE
+  "CMakeFiles/helloworld.dir/src/Counter.cc.o"
   "CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o"
   "CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o"
   "helloworld.pdb"

@@ -1,4 +1,5 @@
 FILE(REMOVE_RECURSE
+  "CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj"
   "CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj"
   "CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj"
   "helloworld.elf.pdb"

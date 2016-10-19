@@ -49,9 +49,32 @@ include CMakeFiles/helloworld.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/helloworld.dir/flags.make
 
+CMakeFiles/helloworld.dir/src/Counter.cc.o: CMakeFiles/helloworld.dir/flags.make
+CMakeFiles/helloworld.dir/src/Counter.cc.o: ../src/Counter.cc
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles $(CMAKE_PROGRESS_1)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/helloworld.dir/src/Counter.cc.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/helloworld.dir/src/Counter.cc.o -c /home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc
+
+CMakeFiles/helloworld.dir/src/Counter.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/helloworld.dir/src/Counter.cc.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc > CMakeFiles/helloworld.dir/src/Counter.cc.i
+
+CMakeFiles/helloworld.dir/src/Counter.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/helloworld.dir/src/Counter.cc.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc -o CMakeFiles/helloworld.dir/src/Counter.cc.s
+
+CMakeFiles/helloworld.dir/src/Counter.cc.o.requires:
+.PHONY : CMakeFiles/helloworld.dir/src/Counter.cc.o.requires
+
+CMakeFiles/helloworld.dir/src/Counter.cc.o.provides: CMakeFiles/helloworld.dir/src/Counter.cc.o.requires
+	$(MAKE) -f CMakeFiles/helloworld.dir/build.make CMakeFiles/helloworld.dir/src/Counter.cc.o.provides.build
+.PHONY : CMakeFiles/helloworld.dir/src/Counter.cc.o.provides
+
+CMakeFiles/helloworld.dir/src/Counter.cc.o.provides.build: CMakeFiles/helloworld.dir/src/Counter.cc.o
+
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: CMakeFiles/helloworld.dir/flags.make
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: ../src/hosted/helloworld.cc
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles $(CMAKE_PROGRESS_1)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles $(CMAKE_PROGRESS_2)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o"
 	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o -c /home/yeungsl/ebbrt-contrib/apps/counter/src/hosted/helloworld.cc
 
@@ -74,7 +97,7 @@ CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o.provides.build: CMakeFiles/
 
 CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o: CMakeFiles/helloworld.dir/flags.make
 CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o: ../src/hosted/Printer.cc
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles $(CMAKE_PROGRESS_2)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/CMakeFiles $(CMAKE_PROGRESS_3)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o"
 	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o -c /home/yeungsl/ebbrt-contrib/apps/counter/src/hosted/Printer.cc
 
@@ -97,12 +120,14 @@ CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o.provides.build: CMakeFiles/hel
 
 # Object files for target helloworld
 helloworld_OBJECTS = \
+"CMakeFiles/helloworld.dir/src/Counter.cc.o" \
 "CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o" \
 "CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o"
 
 # External object files for target helloworld
 helloworld_EXTERNAL_OBJECTS =
 
+helloworld: CMakeFiles/helloworld.dir/src/Counter.cc.o
 helloworld: CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o
 helloworld: CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o
 helloworld: CMakeFiles/helloworld.dir/build.make
@@ -123,6 +148,7 @@ helloworld: CMakeFiles/helloworld.dir/link.txt
 CMakeFiles/helloworld.dir/build: helloworld
 .PHONY : CMakeFiles/helloworld.dir/build
 
+CMakeFiles/helloworld.dir/requires: CMakeFiles/helloworld.dir/src/Counter.cc.o.requires
 CMakeFiles/helloworld.dir/requires: CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o.requires
 CMakeFiles/helloworld.dir/requires: CMakeFiles/helloworld.dir/src/hosted/Printer.cc.o.requires
 .PHONY : CMakeFiles/helloworld.dir/requires

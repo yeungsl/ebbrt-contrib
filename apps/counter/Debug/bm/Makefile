@@ -111,6 +111,30 @@ helloworld.elf/fast:
 	$(MAKE) -f CMakeFiles/helloworld.elf.dir/build.make CMakeFiles/helloworld.elf.dir/build
 .PHONY : helloworld.elf/fast
 
+src/Counter.obj: src/Counter.cc.obj
+.PHONY : src/Counter.obj
+
+# target to build an object file
+src/Counter.cc.obj:
+	$(MAKE) -f CMakeFiles/helloworld.elf.dir/build.make CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj
+.PHONY : src/Counter.cc.obj
+
+src/Counter.i: src/Counter.cc.i
+.PHONY : src/Counter.i
+
+# target to preprocess a source file
+src/Counter.cc.i:
+	$(MAKE) -f CMakeFiles/helloworld.elf.dir/build.make CMakeFiles/helloworld.elf.dir/src/Counter.cc.i
+.PHONY : src/Counter.cc.i
+
+src/Counter.s: src/Counter.cc.s
+.PHONY : src/Counter.s
+
+# target to generate assembly for a file
+src/Counter.cc.s:
+	$(MAKE) -f CMakeFiles/helloworld.elf.dir/build.make CMakeFiles/helloworld.elf.dir/src/Counter.cc.s
+.PHONY : src/Counter.cc.s
+
 src/baremetal/Printer.obj: src/baremetal/Printer.cc.obj
 .PHONY : src/baremetal/Printer.obj
 
@@ -168,6 +192,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... helloworld.elf"
 	@echo "... rebuild_cache"
+	@echo "... src/Counter.obj"
+	@echo "... src/Counter.i"
+	@echo "... src/Counter.s"
 	@echo "... src/baremetal/Printer.obj"
 	@echo "... src/baremetal/Printer.i"
 	@echo "... src/baremetal/Printer.s"

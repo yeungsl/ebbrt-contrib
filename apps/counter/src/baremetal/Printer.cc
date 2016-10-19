@@ -48,6 +48,12 @@ Printer& Printer::HandleFault(ebbrt::EbbId id) {
 }
 
 void Printer::Print(const char* str) {
+#if 0
+  auto f = ebbrt::global_id_map->Get(kCounterEbbId);
+  f.Block();
+  auto n = f.Get();
+  ebbrt::kprintf("got the number %s\n", n);
+#endif
   auto len = strlen(str) + 1;
   auto buf = ebbrt::MakeUniqueIOBuf(len);
   snprintf(reinterpret_cast<char*>(buf->MutData()), len, "%s", str);

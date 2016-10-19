@@ -49,9 +49,32 @@ include CMakeFiles/helloworld.elf.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/helloworld.elf.dir/flags.make
 
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj: CMakeFiles/helloworld.elf.dir/flags.make
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj: ../../src/Counter.cc
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/bm/CMakeFiles $(CMAKE_PROGRESS_1)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj"
+	/home/yeungsl/EbbRT/toolchain/sysroot/usr/bin/x86_64-pc-ebbrt-g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj -c /home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc
+
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/helloworld.elf.dir/src/Counter.cc.i"
+	/home/yeungsl/EbbRT/toolchain/sysroot/usr/bin/x86_64-pc-ebbrt-g++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc > CMakeFiles/helloworld.elf.dir/src/Counter.cc.i
+
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/helloworld.elf.dir/src/Counter.cc.s"
+	/home/yeungsl/EbbRT/toolchain/sysroot/usr/bin/x86_64-pc-ebbrt-g++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/yeungsl/ebbrt-contrib/apps/counter/src/Counter.cc -o CMakeFiles/helloworld.elf.dir/src/Counter.cc.s
+
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.requires:
+.PHONY : CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.requires
+
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.provides: CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.requires
+	$(MAKE) -f CMakeFiles/helloworld.elf.dir/build.make CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.provides.build
+.PHONY : CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.provides
+
+CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.provides.build: CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj
+
 CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj: CMakeFiles/helloworld.elf.dir/flags.make
 CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj: ../../src/baremetal/helloworld.cc
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/bm/CMakeFiles $(CMAKE_PROGRESS_1)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/bm/CMakeFiles $(CMAKE_PROGRESS_2)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj"
 	/home/yeungsl/EbbRT/toolchain/sysroot/usr/bin/x86_64-pc-ebbrt-g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj -c /home/yeungsl/ebbrt-contrib/apps/counter/src/baremetal/helloworld.cc
 
@@ -74,7 +97,7 @@ CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj.provides.build: CM
 
 CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj: CMakeFiles/helloworld.elf.dir/flags.make
 CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj: ../../src/baremetal/Printer.cc
-	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/bm/CMakeFiles $(CMAKE_PROGRESS_2)
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/yeungsl/ebbrt-contrib/apps/counter/Debug/bm/CMakeFiles $(CMAKE_PROGRESS_3)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj"
 	/home/yeungsl/EbbRT/toolchain/sysroot/usr/bin/x86_64-pc-ebbrt-g++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj -c /home/yeungsl/ebbrt-contrib/apps/counter/src/baremetal/Printer.cc
 
@@ -97,12 +120,14 @@ CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj.provides.build: CMake
 
 # Object files for target helloworld.elf
 helloworld_elf_OBJECTS = \
+"CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj" \
 "CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj" \
 "CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj"
 
 # External object files for target helloworld.elf
 helloworld_elf_EXTERNAL_OBJECTS =
 
+helloworld.elf: CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj
 helloworld.elf: CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj
 helloworld.elf: CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj
 helloworld.elf: CMakeFiles/helloworld.elf.dir/build.make
@@ -115,6 +140,7 @@ helloworld.elf: CMakeFiles/helloworld.elf.dir/link.txt
 CMakeFiles/helloworld.elf.dir/build: helloworld.elf
 .PHONY : CMakeFiles/helloworld.elf.dir/build
 
+CMakeFiles/helloworld.elf.dir/requires: CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj.requires
 CMakeFiles/helloworld.elf.dir/requires: CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj.requires
 CMakeFiles/helloworld.elf.dir/requires: CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj.requires
 .PHONY : CMakeFiles/helloworld.elf.dir/requires
