@@ -25,6 +25,7 @@ CMakeFiles/helloworld.dir/src/Counter.cc.o: /home/yeungsl/EbbRT/hosted/usr/inclu
 CMakeFiles/helloworld.dir/src/Counter.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/StaticIds.h
 CMakeFiles/helloworld.dir/src/Counter.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/StaticSharedEbb.h
 CMakeFiles/helloworld.dir/src/Counter.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/TypeTraits.h
+CMakeFiles/helloworld.dir/src/Counter.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/UniqueIOBuf.h
 CMakeFiles/helloworld.dir/src/Counter.cc.o: ../src/Counter.cc
 CMakeFiles/helloworld.dir/src/Counter.cc.o: ../src/Counter.h
 CMakeFiles/helloworld.dir/src/Counter.cc.o: ../src/StaticEbbIds.h
@@ -58,6 +59,7 @@ CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/Compiler.h
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/Context.h
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/ContextActivation.h
+CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/Debug.h
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/EbbId.h
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/EbbRef.h
 CMakeFiles/helloworld.dir/src/hosted/helloworld.cc.o: /home/yeungsl/EbbRT/hosted/usr/include/ebbrt/EventContext.h

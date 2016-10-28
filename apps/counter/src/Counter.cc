@@ -3,17 +3,19 @@
 #include <ebbrt/EbbRef.h>
 #include <ebbrt/LocalIdMap.h>
 #include <ebbrt/GlobalIdMap.h>
-
+#include <ebbrt/UniqueIOBuf.h>
 #include <ebbrt/Debug.h>
-
+#include <ebbrt/Future.h>
 #include "Counter.h"
+using namespace Counter;
+EBBRT_PUBLISH_TYPE(, SharedCounter);
 
 #ifndef __ebbrt__
 
 ebbrt::Future<ebbrt::EbbRef<Counter::SharedCounter>>
 Counter::SharedCounter::Init()
 {
-  return ebbrt::global_id_map->Set(kCounterEbbId, std::move("0"))
+  return ebbrt::global_id_map->Set(kCounterEbbId, ebbrt::messenger->LocalNetworkId().ToBytes())
       .Then([](ebbrt::Future<void> f) {
         f.Get();
         return ebbrt::EbbRef<SharedCounter>(kCounterEbbId);
@@ -100,3 +102,59 @@ Counter::SharedCounter::HandleFault(ebbrt::EbbId id) {
   goto retry;
 }
 
+void Counter::SharedCounter::join(){
+  ebbrt::kprintf("joining the home node\n");
+  auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
+  auto dp = buf->GetMutDataPointer();
+  dp.Get<uint32_t>() = 1;  // Ping messages are odd
+  /*
+  auto str = "1";
+  auto len = strlen(str) + 1;
+  auto buf = ebbrt::MakeUniqueIOBuf(len);
+  snprintf(reinterpret_cast<char*>(buf->MutData()), len, "%s", str);
+  */
+#ifdef __ebbrt__
+  auto f = myRoot_->getString();
+  f.Block();
+  auto nid = ebbrt::Messenger::NetworkId(f.Get());
+  ebbrt::kprintf("gather got nid: %s\n", nid.ToString().c_str());
+  SendMessage(nid, std::move(buf));
+#endif
+
+}
+
+void Counter::SharedCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
+				       std::unique_ptr<ebbrt::IOBuf>&& buffer){
+  auto dp = buffer->GetDataPointer();
+  auto id = dp.Get<uint32_t>();
+  ebbrt::kprintf("id is %d\n", id);
+  if(id == 1){
+    printf("0 FE: Join!\n");
+    SharedCounter::addTo(nid);
+    printf("0 FE: nodelistSize = %d\n", SharedCounter::size());
+  }
+
+}
+/*
+ebbrt::Future<int> Counter::SharedCounter::gather(){
+  uint32_t id = 10;
+  ebbrt::Promise<int> promise;
+  auto nid = SharedCounter::nlist(0);
+  auto ret = promise.GetFuture();
+  {
+    std::lock_guard<std::mutex> guard(m_);
+  
+    bool inserted;
+    // insert our promise into the hash table
+    std::tie(std::ignore, inserted) =
+        promise_map_.emplace(id, std::move(promise));
+    assert(inserted);
+  }
+  // Construct and send the ping message
+  auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
+  auto dp = buf->GetMutDataPointer();
+  dp.Get<uint32_t>() = id + 1;  // Ping messages are odd
+  SendMessage(nid, std::move(buf));
+  return ret;
+}
+*/
