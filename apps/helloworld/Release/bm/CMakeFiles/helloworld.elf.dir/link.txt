@@ -1,1 +1,0 @@
-/home/yeungsl/sysroot/debug/usr/bin/x86_64-pc-ebbrt-g++    -std=gnu++14 -Wall -Werror -O4 -flto -DNDEBUG    CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj  -o helloworld.elf  

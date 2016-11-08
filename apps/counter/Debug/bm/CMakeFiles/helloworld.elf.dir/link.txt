@@ -1,1 +1,0 @@
-/home/yeungsl/EbbRT/toolchain/sysroot/usr/bin/x86_64-pc-ebbrt-g++    -std=gnu++14 -std=gnu++14 -Wall -Werror -O0 -g3    CMakeFiles/helloworld.elf.dir/src/Counter.cc.obj CMakeFiles/helloworld.elf.dir/src/baremetal/helloworld.cc.obj CMakeFiles/helloworld.elf.dir/src/baremetal/Printer.cc.obj  -o helloworld.elf  

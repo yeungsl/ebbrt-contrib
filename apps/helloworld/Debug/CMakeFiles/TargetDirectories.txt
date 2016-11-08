@@ -1,1 +1,0 @@
-/home/yeungsl/ebbrt-contrib/apps/helloworld/Debug/CMakeFiles/helloworld.dir
