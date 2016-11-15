@@ -4,7 +4,13 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "Printer.h"
+#include "../Counter.h"
 
-void AppMain() { 
-  ebbrt::kprintf("hellow world from BM\n");
-printer->Print("Hello World\n"); }
+void AppMain() {
+  
+  ebbrt::kprintf("1 BM: back end up!\n");
+  Counter::theCounter->inc();
+  ebbrt::kprintf("1 BM: back end counter\n");
+  //  Counter::theCounter->join();
+  //  ebbrt::kprintf("finished\n");
+}
