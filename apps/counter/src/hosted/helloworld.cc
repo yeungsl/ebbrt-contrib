@@ -9,21 +9,61 @@
 #include <thread>
 #include <boost/filesystem.hpp>
 
-#include <ebbrt/Context.h>
-#include <ebbrt/ContextActivation.h>
+#include <ebbrt/hosted/Context.h>
+#include <ebbrt/hosted/ContextActivation.h>
 #include <ebbrt/GlobalIdMap.h>
 #include <ebbrt/StaticIds.h>
-#include <ebbrt/NodeAllocator.h>
+#include <ebbrt/hosted/NodeAllocator.h>
 #include <ebbrt/Runtime.h>
 
 #include "../Counter.h"
 #include "Printer.h"
 
+
+ebbrt::Runtime runtime;
+
+void gatherloop(){
+  ebbrt::Context c_2(runtime);
+  ebbrt::ContextActivation activation(c_2);
+  while(true){
+    auto vfg = Counter::theCounter->gather();
+    when_all(vfg).Then([](auto vf){
+	auto v = vf.Get();
+	int gather_sum = Counter::theCounter->val();
+	for(uint32_t i = 0; i< v.size(); i++){
+  	  gather_sum += v[i];
+	  std::cout<<"success gather "<< v[i] <<" on node #"<< i <<" gather sum "<< gather_sum <<"\n"<<std::endl;
+	}
+      });
+    /*
+    auto bindir = boost::filesystem::system_complete(argv[0]).parent_path() /
+                "/bm/helloworld.elf32";
+    ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
+    */
+    std::chrono::seconds sec(3);
+    std::this_thread::sleep_for(sec);
+  }
+}
+
+void nodeloop(char** argv){
+  auto bindir = boost::filesystem::system_complete(argv[0]).parent_path() /
+                "/bm/helloworld.elf32";
+
+  ebbrt::Context c_3(runtime);
+  ebbrt::ContextActivation activation(c_3);
+  for(int i = 0; i < 2; i++){
+    ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
+    std::chrono::seconds sec(5);
+    std::this_thread::sleep_for(sec);
+  }
+}
+
 int main(int argc, char** argv) {
   auto bindir = boost::filesystem::system_complete(argv[0]).parent_path() /
                 "/bm/helloworld.elf32";
 
-  ebbrt::Runtime runtime;
+
+
   ebbrt::Context c(runtime);
   boost::asio::signal_set sig(c.io_service_, SIGINT);
   {
@@ -36,29 +76,15 @@ int main(int argc, char** argv) {
 	Counter::theCounter->inc();
 	auto ns = ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
 	ns.NetworkId().Then([&](ebbrt::Future<ebbrt::Messenger::NetworkId> net_if){
-	      Counter::theCounter->addTo(net_if.Get());
-	      Counter::theCounter->gather().Then([](auto f){
-		  std::cout<<"Count:"<<f.Get()<<std::endl;
-		});
+	    std::thread t(gatherloop);
+	    t.detach();
+
+	    std::thread t_2(nodeloop, argv);
+	    t_2.detach();
+
 	  });
 	
       });
-    /*
-    ns.NetworkId().Then([&](ebbrt::Future<ebbrt::Messenger::NetworkId> net_if){
-	auto nid = net_if.Get();
-	std::cout<<"IP RECIEVED:"<<nid.ToString()<<std::endl;
-	Counter::theCounter->addTo(nid);
-	auto f_count = Counter::theCounter->gather().Block();
-	auto count = f_count.Get();
-	printf("get the count %d \n", count);
-
-	f_count.Then([](auto f ){
-	    auto count = f.Get();
-	    printf("get the count %d \n", count);
-	  });
-
-      });
-    */
   }
   c.Run();
 

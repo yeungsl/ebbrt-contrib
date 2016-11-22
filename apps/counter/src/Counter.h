@@ -4,7 +4,7 @@
 #include <ebbrt/Messenger.h>
 #include <ebbrt/Runtime.h>
 #include <ebbrt/Future.h>
-#include <ebbrt/Buffer.h>
+
 #include <ebbrt/Message.h>
 #include <ebbrt/Debug.h>
 #include "StaticEbbIds.h"
@@ -36,7 +36,6 @@ namespace Counter {
   public:
     static SharedCounter & HandleFault(ebbrt::EbbId id);
     static ebbrt::Future<void> Init();
-    
     int val() { return val_; }
     void inc() { ebbrt::kprintf("1 BM: inc\n"); val_++; }
     void addTo(ebbrt::Messenger::NetworkId nid){ nodelist.push_back(nid); }
@@ -44,7 +43,7 @@ namespace Counter {
     ebbrt::Messenger::NetworkId nlist(int i){ return nodelist[i]; }
     void join();
     void ReceiveMessage(ebbrt::Messenger::NetworkId nid, std::unique_ptr<ebbrt::IOBuf>&& buffer);
-    ebbrt::Future<int> gather();
+    std::vector<ebbrt::Future<int>> gather();
   };
   constexpr auto theCounter = ebbrt::EbbRef<SharedCounter>(kCounterEbbId);
 };
