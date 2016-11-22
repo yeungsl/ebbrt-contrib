@@ -10,14 +10,16 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <ebbrt/MulticoreEbb.h>
+
 
 using namespace Counter;
-EBBRT_PUBLISH_TYPE(, SharedCounter);
+EBBRT_PUBLISH_TYPE(, MultinodeCounter);
 
 
-#ifndef __ebbrt__
+#if 0
 ebbrt::Future<void>
-Counter::SharedCounter::Init()
+Counter::MultinodeCounter::Init()
 {
 
   return ebbrt::global_id_map->Set(kCounterEbbId, ebbrt::messenger->LocalNetworkId().ToBytes())
@@ -31,113 +33,105 @@ Counter::SharedCounter::Init()
 }
 #endif
 
-Counter::SharedCounter::Root::Root(ebbrt::EbbId id) : myId_(id), theRep_(NULL)  {
+#if 0
+Counter::MultinodeCounter::Root::Root(ebbrt::EbbId id) : myId_(id), theRep_(NULL)  {
   data_ = ebbrt::global_id_map->Get(id).Share();
 }
 
-Counter::SharedCounter *
-Counter::SharedCounter::Root::getRep_BIN() {
+Counter::MultinodeCounter *
+Counter::MultinodeCounter::Root::getRep_BIN() {
   std::lock_guard<std::mutex> lock{lock_};
   if (theRep_) return theRep_; // implicity drop lock
 
   if (theRep_ == NULL)  { 
     // now that we are ready create the rep if necessary
-    theRep_ = new SharedCounter(this);
+    theRep_ = new MultinodeCounter(this);
   }
   return theRep_;      // implicity drop lock
 }
+#endif
 
-
-// I am modeling this based on the following example from TBB doc
-// http://www.threadingbuildingblocks.org/docs/help/reference/containers_overview/concurrent_hash_map_cls/concurrent_operations.htm
-//  extern tbb::concurrent_hash_map<Key,Resource,HashCompare> Map;
-// void ConstructResource( Key key ) {
-//        accessor acc;
-//        if( Map.insert(acc,key) ) {
-//                // Current thread inserted key and has exclusive access.
-//                ...construct the resource here...
-//        }
-//        // Implicit destruction of acc releases lock
-// }
-
-// void DestroyResource( Key key ) {
-//        accessor acc;
-//        if( Map.find(acc,key) ) {
-//                // Current thread found key and has exclusive access.
-//                ...destroy the resource here...
-//                // Erase key using accessor.
-//                Map.erase(acc);
-//        }
-// }
-Counter::SharedCounter & 
-Counter::SharedCounter::HandleFault(ebbrt::EbbId id) {
- retry:
+Counter::MultinodeCounter & 
+Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
+  // Check if we have a rep stored in the local_id_map:
+  ebbrt::kprintf("handle fault at all (%d)?\n", id);
   {
-    ebbrt::LocalIdMap::ConstAccessor rd_access;
-    if (ebbrt::local_id_map->Find(rd_access, id)) {
-      // COMMON: "HOT PATH": NODE HAS A ROOT ESTABLISHED
-      // EVERYONE MUST EVENTUALLY GET HERE OR THROW AND EXCEPTION
-      // Found the root get a rep and return
-      auto &root = *boost::any_cast<Root *>(rd_access->second);
-      rd_access.release();  // drop lock
-      // NO LOCKS;
-      auto &rep = *(root.getRep_BIN());   // this may block internally
-      ebbrt::EbbRef<SharedCounter>::CacheRef(id, rep);
-      // The sole exit path out of handle fault
-      root.getRep_BIN()->join();
-      return rep; // drop rd_access lock by exiting outer scope
+    ebbrt::LocalIdMap::ConstAccessor accessor;
+    auto found = ebbrt::local_id_map->Find(accessor, id);
+    if (found) {
+      ebbrt::kprintf("found?\n");
+      auto& r = *boost::any_cast<Counter::MultinodeCounter*>(accessor->second);
+      ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, r);
+      return r;
     }
-  } 
-  // failed to find root: NO LOCK held and we need to establish a root for this node
-  ebbrt::LocalIdMap::Accessor wr_access;
-  if (ebbrt::local_id_map->Insert(wr_access, id)) {
-    // WRITE_LOCK HELD:  THIS HOLDS READERS FROM MAKING PROGESS
-    //                   ONLY ONE WRITER EXITS
-    Root *root = new Root(id);
-    wr_access->second = root;
-    wr_access.release(); // WE CAN NOW DROP THE LOCK and retry as a normal reader
   }
-  // NO LOCKS HELD
-  // if we failed to insert then someone else must have beat us
-  // and is the writer and will eventuall fill in the entry.
-  // all we have to do is retry a read on the entry
-  goto retry;
+  // join with home node, found in global_id_map
+#ifdef __ebbrt__
+  ebbrt::EventManager::EventContext context;
+  auto f = ebbrt::global_id_map->Get(id);
+  ebbrt::kprintf("1BM: get from global id map?\n");
+  Counter::MultinodeCounter* p;
+  f.Then([&f, &context, &p, id](ebbrt::Future<std::string> inner) {
+    p = new Counter::MultinodeCounter();
+    ebbrt::kprintf("1BM: did I called join?\n");
+    p->Join(ebbrt::Messenger::NetworkId(inner.Get()));
+    ebbrt::event_manager->ActivateContext(std::move(context));
+  });
+  ebbrt::event_manager->SaveContext(context);
+  auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
+  if (inserted) {
+    ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    return *p;
+  }
+#else
+  Counter::MultinodeCounter* p;
+    ebbrt::global_id_map->Set(id, ebbrt::messenger->LocalNetworkId().ToBytes());
+    p = new Counter::MultinodeCounter();
+    ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
+    if (inserted) {
+    ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    return *p;
+  }
+#endif
+  delete p;
+
+  // retry reading
+  ebbrt::LocalIdMap::ConstAccessor accessor;
+  ebbrt::local_id_map->Find(accessor, id);
+  auto& r = *boost::any_cast<Counter::MultinodeCounter*>(accessor->second);
+  ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, r);
+  return r;
 }
 
 
-
-void Counter::SharedCounter::join(){
-#ifdef __ebbrt__
-  uint32_t id = 0;
-  auto f = myRoot_->getString();
-  f.Block();
-  auto nid = ebbrt::Messenger::NetworkId(f.Get());
+void Counter::MultinodeCounter::Join(ebbrt::Messenger::NetworkId nid){
   ebbrt::kprintf("1BM : got nid: %s\n", nid.ToString().c_str());
   ebbrt::kprintf("joining the home node\n");
   auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
   auto dp = buf->GetMutDataPointer();
-  dp.Get<uint32_t>() = id;  // Ping messages are odd
+  dp.Get<uint32_t>() = 0; 
   SendMessage(nid, std::move(buf));
-#endif
 }
 
-void Counter::SharedCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
+void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
 				       std::unique_ptr<ebbrt::IOBuf>&& buffer){
   auto dp = buffer->GetDataPointer();
   auto id = dp.Get<uint32_t>();
   ebbrt::kprintf("id is %d\n", id);
   if(id == 0){
     printf("0 FE: Join!\n");
-    Counter::theCounter->addTo(nid);
+    addTo(nid);
+    printf("nodelist size=%d\n", size());
     return;
   }
   if (id & 1){
     // Received Ping
-    ebbrt::kprintf("1 BM: local val %d \n", Counter::theCounter->val());
+    ebbrt::kprintf("1 BM: local val %d \n", Val());
     auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
     auto dp = buf->GetMutDataPointer();
     dp.Get<uint32_t>() = id - 1;  // Send back with the original id
-    dp.Get<uint32_t>() = Counter::theCounter->val();
+    dp.Get<uint32_t>() = Val();
     SendMessage(nid, std::move(buf));
     return;
   }
@@ -155,11 +149,10 @@ void Counter::SharedCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
 }
 
 
-
-std::vector<ebbrt::Future<int>> Counter::SharedCounter::gather(){
+std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
   std::vector<ebbrt::Future<int>> ret;
 #ifdef __ebbrt__
-  ebbrt::kprintf("1BM: CALLING GATHER\n");
+  EBBRT_UNIMPLEMENTED();
   /*
   ebbrt::kprintf("1BM : start gather\n");
   auto f = myRoot_->getString();
@@ -172,7 +165,8 @@ std::vector<ebbrt::Future<int>> Counter::SharedCounter::gather(){
   printf("0FE: CALLED GATHER\n");
 
   uint32_t id;
-  if (SharedCounter::size() == 0){
+    printf("gather nodelist size=%d\n", size());
+  if (size() == 0){
     ebbrt::Promise<int> promise;
     auto f = promise.GetFuture();
     ret.push_back(std::move(f));
@@ -181,8 +175,8 @@ std::vector<ebbrt::Future<int>> Counter::SharedCounter::gather(){
     return ret;
   }
 
-  for(int i = 0; i < SharedCounter::size(); i++){
-    auto nid = SharedCounter::nlist(i);
+  for(int i = 0; i < MultinodeCounter::size(); i++){
+    auto nid = MultinodeCounter::nlist(i);
     ebbrt::Promise<int> promise;
     auto f = promise.GetFuture();
     ret.push_back(std::move(f));

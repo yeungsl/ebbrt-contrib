@@ -6,10 +6,16 @@
 #include "Printer.h"
 #include "../Counter.h"
 
+auto node_counter = ebbrt::EbbRef<Counter::MultinodeCounter>(kCounterEbbId);
+
 void AppMain() {
   
   ebbrt::kprintf("1 BM: back end up!\n");
-  Counter::theCounter->inc();
+
+  //ebbrt::MulticoreEbbRoot<Counter::MultinodeCounter> mncount;
+  //ebbrt::EbbRef<Counter> counter = Counter::Create(&counter_root);
+  node_counter->Inc();
+  //Counter::theCounter->inc();
   ebbrt::kprintf("1 BM: back end counter\n");
   //  Counter::theCounter->join();
   //  ebbrt::kprintf("finished\n");
