@@ -7,4 +7,4 @@
 
 void AppMain() { 
   ebbrt::kprintf("hellow world from BM\n");
-printer->Print("Hello World\n"); }
+  printer->Print("Hello World\n"); }

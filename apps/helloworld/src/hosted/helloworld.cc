@@ -7,11 +7,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <ebbrt/Context.h>
-#include <ebbrt/ContextActivation.h>
+#include <ebbrt/hosted/Context.h>
+#include <ebbrt/hosted/ContextActivation.h>
 #include <ebbrt/GlobalIdMap.h>
 #include <ebbrt/StaticIds.h>
-#include <ebbrt/NodeAllocator.h>
+#include <ebbrt/hosted/NodeAllocator.h>
 #include <ebbrt/Runtime.h>
 
 #include "Printer.h"
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
                         int signal_number) { c.io_service_.stop(); });
     Printer::Init().Then([bindir](ebbrt::Future<void> f) {
       f.Get();
-      ebbrt::node_allocator->AllocateNode(bindir.string());
+      ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
     });
   }
   c.Run();
