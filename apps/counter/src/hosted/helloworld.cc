@@ -74,13 +74,13 @@ int main(int argc, char** argv) {
 	node_counter->Inc();
 	auto ns = ebbrt::node_allocator->AllocateNode(bindir.string(), 2);
 	ns.NetworkId().Then([&](ebbrt::Future<ebbrt::Messenger::NetworkId> net_if){
-	    /*
+
 	    std::thread t(gatherloop);
 	    t.detach();
 	    
 	    std::thread t_2(nodeloop, argv);
 	    t_2.detach();
-	    */
+
 	  });
 	
   }

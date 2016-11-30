@@ -126,8 +126,17 @@ void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
     printf("nodelist size=%d\n", size());
     return;
   }
-  if(id == 20){
-    printf("ReceiveMessage: calling Gather!\n");
+  if (id & 1){
+#ifdef __ebbrt__
+    ebbrt::kprintf("RecieveMessage: BM sending local val %d \n", Val());
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = id - 1;  // Send back with the original id
+    dp.Get<uint32_t>() = Val();
+    SendMessage(nid, std::move(buf));
+    return;
+#else
+    printf("ReceiveMessage: FE calling Gather!\n");
     auto vfg = Gather();
     auto v = ebbrt::when_all(vfg).Then([this, nid, id](auto vf){
         auto v = vf.Get();
@@ -138,32 +147,12 @@ void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
 	ebbrt::kprintf("sum: %d\n", gather_sum);
 	auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
 	auto dp = buf->GetMutDataPointer();
-	dp.Get<uint32_t>() = id+2;
+	dp.Get<uint32_t>() = id - 1;
 	dp.Get<uint32_t>() = gather_sum;
 	this->SendMessage(nid, std::move(buf));
 	});
     return;
-  }
-  if(id == 22){
-    id = 20;
-    auto val = dp.Get<uint32_t>();
-    ebbrt::kprintf("1 BM: get val %d\n", val);
-    // Received Pong, lookup in the hash table for our promise and set it
-    std::lock_guard<std::mutex> guard(lock_);
-    auto it = promise_map_.find(id);
-    assert(it != promise_map_.end());
-    it->second.SetValue(val);
-    promise_map_.erase(it);
-    return;
-  }
-  if (id & 1){
-    ebbrt::kprintf("RecieveMessage: sending local val %d \n", Val());
-    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
-    auto dp = buf->GetMutDataPointer();
-    dp.Get<uint32_t>() = id - 1;  // Send back with the original id
-    dp.Get<uint32_t>() = Val();
-    SendMessage(nid, std::move(buf));
-    return;
+#endif
   }
   if (!(id & 1)){
     auto val = dp.Get<uint32_t>();
@@ -186,10 +175,12 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
   auto ff = f.Block();
   auto nid = ebbrt::Messenger::NetworkId(ff.Get());
   ebbrt::kprintf("1BM : got nid: %s\n", nid.ToString().c_str());
+  addTo(nid);
+  /*
   ebbrt::Promise<int> promise;
   auto p_f = promise.GetFuture();
   ret.push_back(std::move(p_f));
-  auto id = 20;
+  auto id = 2;
   {
     std::lock_guard<std::mutex> guard(lock_);
     bool inserted;
@@ -199,10 +190,11 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
   }
   auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
   auto dp = buf->GetMutDataPointer();
-  dp.Get<uint32_t>() = id; 
+  dp.Get<uint32_t>() = id + 1; 
   SendMessage(nid, std::move(buf));
   return ret;
-#else
+  */
+#endif
   uint32_t id;
   printf("gather nodelist size=%d\n", size());
   if (size() == 0){
@@ -235,6 +227,5 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
     SendMessage(nid, std::move(buf));
   }
   return ret;
-#endif
 }
 
