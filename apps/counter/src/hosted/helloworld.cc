@@ -72,15 +72,15 @@ int main(int argc, char** argv) {
     sig.async_wait([&c](const boost::system::error_code& ec,
                         int signal_number) { c.io_service_.stop(); });
 	node_counter->Inc();
-	auto ns = ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
+	auto ns = ebbrt::node_allocator->AllocateNode(bindir.string(), 2);
 	ns.NetworkId().Then([&](ebbrt::Future<ebbrt::Messenger::NetworkId> net_if){
-	    
+	    /*
 	    std::thread t(gatherloop);
 	    t.detach();
-	   
+	    
 	    std::thread t_2(nodeloop, argv);
 	    t_2.detach();
-
+	    */
 	  });
 	
   }

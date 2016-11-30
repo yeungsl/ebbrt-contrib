@@ -11,12 +11,12 @@ auto node_counter = ebbrt::EbbRef<Counter::MultinodeCounter>(kCounterEbbId);
 void AppMain() {
   
   ebbrt::kprintf("1 BM: back end up!\n");
-
-  //ebbrt::MulticoreEbbRoot<Counter::MultinodeCounter> mncount;
-  //ebbrt::EbbRef<Counter> counter = Counter::Create(&counter_root);
   node_counter->Inc();
-  //Counter::theCounter->inc();
-  ebbrt::kprintf("1 BM: back end counter\n");
-  //  Counter::theCounter->join();
-  //  ebbrt::kprintf("finished\n");
+  ebbrt::kprintf("1 BM: Inc counter\n");
+
+  auto f = node_counter->Gather();
+  when_all(f).Then([&](auto vf){
+    ebbrt::kprintf("1 BM: gather sum %d\n", vf.Get()[0]);
+  });
+
 }
