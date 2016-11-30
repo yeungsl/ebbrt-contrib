@@ -176,24 +176,6 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
   auto nid = ebbrt::Messenger::NetworkId(ff.Get());
   ebbrt::kprintf("1BM : got nid: %s\n", nid.ToString().c_str());
   addTo(nid);
-  /*
-  ebbrt::Promise<int> promise;
-  auto p_f = promise.GetFuture();
-  ret.push_back(std::move(p_f));
-  auto id = 2;
-  {
-    std::lock_guard<std::mutex> guard(lock_);
-    bool inserted;
-    std::tie(std::ignore, inserted) =
-      promise_map_.emplace(id, std::move(promise));
-    assert(inserted);
-  }
-  auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
-  auto dp = buf->GetMutDataPointer();
-  dp.Get<uint32_t>() = id + 1; 
-  SendMessage(nid, std::move(buf));
-  return ret;
-  */
 #endif
   uint32_t id;
   printf("gather nodelist size=%d\n", size());
