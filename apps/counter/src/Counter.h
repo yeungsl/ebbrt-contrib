@@ -35,16 +35,15 @@ namespace Counter {
     int id_;
     std::vector<ebbrt::Messenger::NetworkId> nodelist;
     std::unordered_map<uint32_t, ebbrt::Promise<int>> promise_map_;
+    void addTo(ebbrt::Messenger::NetworkId nid){ nodelist.push_back(nid); }
+    int size(){ return int(nodelist.size()); }
+    void Join(ebbrt::Messenger::NetworkId nid);
+    ebbrt::Messenger::NetworkId nlist(int i){ return nodelist[i]; }
     MultinodeCounter() :  ebbrt::Messagable<Counter::MultinodeCounter>(kCounterEbbId),  val_(0), nodelist{} { ebbrt::kprintf("Constrcting MultinodeCounter \n");}
   public: 
     static MultinodeCounter & HandleFault(ebbrt::EbbId id);
-    //static ebbrt::Future<void> Init();
     int Val() { return val_; }
     void Inc() { ebbrt::kprintf("1 BM: inc\n"); val_++; }
-    void addTo(ebbrt::Messenger::NetworkId nid){ nodelist.push_back(nid); }
-    int size(){ return int(nodelist.size()); }
-    ebbrt::Messenger::NetworkId nlist(int i){ return nodelist[i]; }
-    void Join(ebbrt::Messenger::NetworkId nid);
     void ReceiveMessage(ebbrt::Messenger::NetworkId nid, std::unique_ptr<ebbrt::IOBuf>&& buffer);
     std::vector<ebbrt::Future<int>> Gather();
   };
