@@ -13,21 +13,6 @@
 
 namespace Counter {
   class MultinodeCounter : public ebbrt::Messagable<Counter::MultinodeCounter> {
-/*
-  class Root{
-    public:
-      Root(ebbrt::EbbId id);
-      ebbrt::EbbId myId() { return myId_; }
-      CounterRoot * getRep_BIN();
-      ebbrt::SharedFuture<std::string> getString() { return data_; }
-    private:
-      std::mutex lock_;    
-      ebbrt::EbbId myId_;
-      CounterRoot *theRep_;
-      ebbrt::SharedFuture<std::string> data_;
-    }; 
-*/
-
   private:
     std::mutex lock_;
     //Root *myRoot_;
@@ -35,19 +20,28 @@ namespace Counter {
     int id_;
     std::vector<ebbrt::Messenger::NetworkId> nodelist;
     std::unordered_map<uint32_t, ebbrt::Promise<int>> promise_map_;
-    void addTo(ebbrt::Messenger::NetworkId nid){ nodelist.push_back(nid); }
+    void addTo(ebbrt::Messenger::NetworkId nid){
+      if (std::find(nodelist.begin(), nodelist.end(), nid) == nodelist.end()){
+	nodelist.push_back(nid);
+      }
+    }
     int size(){ return int(nodelist.size()); }
-    void Join(ebbrt::Messenger::NetworkId nid);
+    void Join();
+    ebbrt::Future<int> ConsistentJoin();
     ebbrt::Messenger::NetworkId nlist(int i){ return nodelist[i]; }
     MultinodeCounter() :  ebbrt::Messagable<Counter::MultinodeCounter>(kCounterEbbId),  val_(0), nodelist{} { ebbrt::kprintf("Constrcting MultinodeCounter \n");}
+
+    class TransactionHandler {};
   public: 
     static MultinodeCounter & HandleFault(ebbrt::EbbId id);
     int Val() { return val_; }
     void Inc() { ebbrt::kprintf("1 BM: inc\n"); val_++; }
     void ReceiveMessage(ebbrt::Messenger::NetworkId nid, std::unique_ptr<ebbrt::IOBuf>&& buffer);
     std::vector<ebbrt::Future<int>> Gather();
+    int GlobalVal();
   };
 //  constexpr auto theCounter = ebbrt::EbbRef<MultinodeCounter>(kCounterEbbId);
+
 };
 
 #endif 

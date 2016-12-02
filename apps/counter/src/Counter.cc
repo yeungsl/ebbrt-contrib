@@ -71,18 +71,23 @@ Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
   Counter::MultinodeCounter* p;
   f.Then([&f, &context, &p, id](ebbrt::Future<std::string> inner) {
     p = new Counter::MultinodeCounter();
-    ebbrt::kprintf("1BM: did I called join?\n");
+    p->addTo(ebbrt::Messenger::NetworkId(inner.Get()));
     //potentially dangerous!!! no undo the join, what if race happend here, no lock.
     //the join here is not safe it will not make sure if it joined or not....
     //the design here does not guarentee join upon this node
     //did not fully consider the risk of doing such join
-    p->Join(ebbrt::Messenger::NetworkId(inner.Get()));
+    //    p->Join(ebbrt::Messenger::NetworkId(inner.Get()));
     ebbrt::event_manager->ActivateContext(std::move(context));
   });
   ebbrt::event_manager->SaveContext(context);
   auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
   if (inserted) {
     ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    // This join is eventual join, which do not check if the node is actaully joining the home node
+    // however, very efficient
+    //    p->Join();
+    // Consistent Join is relatively slow but garuentees the node is registered with the home node
+    p->ConsistentJoin();
     return *p;
   }
 #else
@@ -107,15 +112,45 @@ Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
 }
 
 
-void Counter::MultinodeCounter::Join(ebbrt::Messenger::NetworkId nid){
+void Counter::MultinodeCounter::Join(){
   //has to fix this, right now its just sending a message, which is not enough
   //should maintain the consistency
-  ebbrt::kprintf("1BM : got nid: %s\n", nid.ToString().c_str());
   ebbrt::kprintf("joining the home node\n");
-  auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
-  auto dp = buf->GetMutDataPointer();
-  dp.Get<uint32_t>() = 0; 
-  SendMessage(nid, std::move(buf));
+  if (size() == 1){
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = 0; 
+    SendMessage(nlist(0), std::move(buf));
+  }
+  else{
+    ebbrt::kabort("no home node");
+  }
+}
+
+ebbrt::Future<int> Counter::MultinodeCounter::ConsistentJoin(){
+  //this join is a consistent join that hold untill the node itself knows its joined
+ ebbrt::kprintf("joining the home node\n");
+  if (size() == 1){
+    ebbrt::Promise<int> promise;
+    auto f = promise.GetFuture();
+    int id;
+    {
+      std::lock_guard<std::mutex> guard(lock_);
+      id = 10;
+      bool inserted;
+      std::tie(std::ignore, inserted) =
+	promise_map_.emplace(id, std::move(promise));
+      assert(inserted);
+    }
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = 0; 
+    SendMessage(nlist(0), std::move(buf));
+    return f;
+  }
+  else{
+    ebbrt::kabort("no home node");
+  }
 }
 
 void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
@@ -127,9 +162,24 @@ void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
   if(id == 0){
     //Join messages recieve simply add to the vector UNSAFE!!!
     //has to add something to make sure no repeating nid
+    /*
     printf("0 FE: recieved Join!\n");
     addTo(nid);
     printf("nodelist size=%d\n", size());
+    */
+    addTo(nid);
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = id + 10; 
+    SendMessage(nid, std::move(buf));
+    return;
+  }
+  if(id == 10){
+    std::lock_guard<std::mutex> guard(lock_);
+    auto it = promise_map_.find(id);
+    assert(it != promise_map_.end());
+    it->second.SetValue(0);
+    promise_map_.erase(it);
     return;
   }
   if (id & 1){
@@ -182,16 +232,8 @@ void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
 
 std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
   std::vector<ebbrt::Future<int>> ret;
-#ifdef __ebbrt__
-  // if not the home node, then get the home node nid and try to call a remote gather
-  ebbrt::kprintf("1BM : start gather\n");
-  auto f = ebbrt::global_id_map->Get(kCounterEbbId);
-  auto ff = f.Block();
-  auto nid = ebbrt::Messenger::NetworkId(ff.Get());
-  ebbrt::kprintf("1BM : got nid: %s\n", nid.ToString().c_str());
-  addTo(nid);
-#endif
-  // if is the home node, check first of all if any nodes come up
+  //generic gather for all the nodes. Then home node will have more than one nids.
+  //other nodes will only have one nid which is the home node's nid.
   uint32_t id;
   printf("gather nodelist size=%d\n", size());
   if (size() == 0){
@@ -227,5 +269,24 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
     SendMessage(nid, std::move(buf));
   }
   return ret;
+}
+
+int Counter::MultinodeCounter::GlobalVal(){
+  //getting back a vector from gather, simply sum up the counts
+  /*
+  ebbrt::Promise<int> promise;
+  auto f = promise.GetFuture();
+  */
+  auto vfg = Gather();
+  ebbrt::when_all(vfg).Block().Then([this]( auto vf){
+      auto v = vf.Get();
+      int gather_sum = this->Val();
+      for(uint32_t i = 0; i< v.size(); i++){
+	gather_sum += v[i];
+      }
+      //      promise.SetValue(std::move(gather_sum));
+      return gather_sum;
+    });
+  return 0;
 }
 
