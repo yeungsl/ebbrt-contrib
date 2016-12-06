@@ -236,6 +236,7 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
   //other nodes will only have one nid which is the home node's nid.
   uint32_t id;
   printf("gather nodelist size=%d\n", size());
+  /*
   if (size() == 0){
     // if none of the nodes joined, then just do a simple local val
     ebbrt::Promise<int> promise;
@@ -245,7 +246,7 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
     promise.SetValue(0);
     return ret;
   }
-
+  */
   for(int i = 0; i < MultinodeCounter::size(); i++){
     // if some of the nodes come up make a promise of a send n recieve pair
     // fufill the promise when gets back the node value
@@ -273,20 +274,23 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
 
 int Counter::MultinodeCounter::GlobalVal(){
   //getting back a vector from gather, simply sum up the counts
-  /*
-  ebbrt::Promise<int> promise;
-  auto f = promise.GetFuture();
-  */
+  // if the nodelist is 0, which means non of th nodes are in the list yet, so just return the local value
+  if (size() == 0){
+    // if none of the nodes joined, then just do a simple local val
+    return Val();
+  }
+#ifdef __ebbrt__
   auto vfg = Gather();
-  ebbrt::when_all(vfg).Block().Then([this]( auto vf){
-      auto v = vf.Get();
-      int gather_sum = this->Val();
-      for(uint32_t i = 0; i< v.size(); i++){
-	gather_sum += v[i];
-      }
-      //      promise.SetValue(std::move(gather_sum));
-      return gather_sum;
-    });
-  return 0;
+  auto v = ebbrt::when_all(vfg).Block().Get();
+  return v[0];
+#else
+  auto vfg = Gather();
+  auto v = ebbrt::when_all(vfg).Block().Get();
+  int gather_sum = this->Val();
+  for(uint32_t i = 0; i< v.size(); i++){
+    gather_sum += v[i];
+  }
+  return gather_sum;
+#endif
 }
 

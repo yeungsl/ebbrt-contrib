@@ -30,17 +30,15 @@ namespace Counter {
     ebbrt::Future<int> ConsistentJoin();
     ebbrt::Messenger::NetworkId nlist(int i){ return nodelist[i]; }
     MultinodeCounter() :  ebbrt::Messagable<Counter::MultinodeCounter>(kCounterEbbId),  val_(0), nodelist{} { ebbrt::kprintf("Constrcting MultinodeCounter \n");}
-
-    class TransactionHandler {};
+    std::vector<ebbrt::Future<int>> Gather();
   public: 
     static MultinodeCounter & HandleFault(ebbrt::EbbId id);
     int Val() { return val_; }
     void Inc() { ebbrt::kprintf("1 BM: inc\n"); val_++; }
     void ReceiveMessage(ebbrt::Messenger::NetworkId nid, std::unique_ptr<ebbrt::IOBuf>&& buffer);
-    std::vector<ebbrt::Future<int>> Gather();
     int GlobalVal();
   };
-//  constexpr auto theCounter = ebbrt::EbbRef<MultinodeCounter>(kCounterEbbId);
+  constexpr auto node_counter = ebbrt::EbbRef<MultinodeCounter>(kCounterEbbId);
 
 };
 
