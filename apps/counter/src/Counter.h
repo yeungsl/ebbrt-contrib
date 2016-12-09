@@ -1,21 +1,21 @@
 #ifndef __COUNTER_H__
 #define __COUNTER_H__
 
+#include "MulticoreEbb.h"
+#include <ebbrt/LocalIdMap.h>
 #include <ebbrt/Messenger.h>
 #include <ebbrt/Runtime.h>
 #include <ebbrt/Future.h>
-#include <ebbrt/MulticoreEbb.h>
 #include <ebbrt/Message.h>
 #include <ebbrt/Debug.h>
 #include "StaticEbbIds.h"
 #include <unordered_map>
 #include <ebbrt/Future.h>
 
-namespace Counter {
-  class MultinodeCounter : public ebbrt::Messagable<Counter::MultinodeCounter> {
+namespace MNCounter {
+  class MultinodeCounter : public ebbrt::Messagable<MNCounter::MultinodeCounter> {
   private:
     std::mutex lock_;
-    //Root *myRoot_;
     int val_;
     int id_;
     std::vector<ebbrt::Messenger::NetworkId> nodelist;
@@ -29,7 +29,7 @@ namespace Counter {
     void Join();
     ebbrt::Future<int> ConsistentJoin();
     ebbrt::Messenger::NetworkId nlist(int i){ return nodelist[i]; }
-    MultinodeCounter() :  ebbrt::Messagable<Counter::MultinodeCounter>(kCounterEbbId),  val_(0), nodelist{} { ebbrt::kprintf("Constrcting MultinodeCounter \n");}
+    MultinodeCounter() :  ebbrt::Messagable<MNCounter::MultinodeCounter>(kCounterEbbId),  val_(0), nodelist{} { ebbrt::kprintf("Constrcting MultinodeCounter \n");}
     std::vector<ebbrt::Future<int>> Gather();
   public: 
     static MultinodeCounter & HandleFault(ebbrt::EbbId id);

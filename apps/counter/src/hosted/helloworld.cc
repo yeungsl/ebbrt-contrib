@@ -8,17 +8,15 @@
 #include <chrono>
 #include <thread>
 #include <boost/filesystem.hpp>
-
 #include <ebbrt/hosted/Context.h>
 #include <ebbrt/hosted/ContextActivation.h>
 #include <ebbrt/GlobalIdMap.h>
 #include <ebbrt/StaticIds.h>
 #include <ebbrt/hosted/NodeAllocator.h>
 #include <ebbrt/Runtime.h>
-
 #include "../Counter.h"
 #include "Printer.h"
-
+#include "../MulticoreCounter.h"
 
 
 ebbrt::Runtime runtime;
@@ -79,11 +77,11 @@ int main(int argc, char** argv) {
 	    /*
 	    std::thread t(gatherloop);
 	    t.detach();
-	    std::thread t_2(nodeloop, argv);
-	    t_2.detach();
 	    */
+	std::thread t_2(nodeloop, argv);
+	t_2.detach();
 	auto r = Counter::node_counter->GlobalVal();
-	std::cout<< "gather_sum "<< r << std::endl;
+	std::cout<< "gather_sum:"<< r << std::endl;
       });
 	
   }

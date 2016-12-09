@@ -10,57 +10,21 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
-#include <ebbrt/MulticoreEbb.h>
 
 
-using namespace Counter;
+using namespace MNCounter;
 EBBRT_PUBLISH_TYPE(, MultinodeCounter);
 
-
-#if 0
-ebbrt::Future<void>
-Counter::MultinodeCounter::Init()
-{
-
-  return ebbrt::global_id_map->Set(kCounterEbbId, ebbrt::messenger->LocalNetworkId().ToBytes())
-      .Then([](ebbrt::Future<void> f) {
-        f.Get();
-        return ;
-
-      });
-
-
-}
-#endif
-
-#if 0
-Counter::MultinodeCounter::Root::Root(ebbrt::EbbId id) : myId_(id), theRep_(NULL)  {
-  data_ = ebbrt::global_id_map->Get(id).Share();
-}
-
-Counter::MultinodeCounter *
-Counter::MultinodeCounter::Root::getRep_BIN() {
-  std::lock_guard<std::mutex> lock{lock_};
-  if (theRep_) return theRep_; // implicity drop lock
-
-  if (theRep_ == NULL)  { 
-    // now that we are ready create the rep if necessary
-    theRep_ = new MultinodeCounter(this);
-  }
-  return theRep_;      // implicity drop lock
-}
-#endif
-
-Counter::MultinodeCounter & 
-Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
+MNCounter::MultinodeCounter & 
+MNCounter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
   {
     // Trying to find if registered in the local Id map
     ebbrt::LocalIdMap::ConstAccessor accessor;
     auto found = ebbrt::local_id_map->Find(accessor, id);
     if (found) {
       // If found the cache reference and return the rep pointer
-      auto& r = *boost::any_cast<Counter::MultinodeCounter*>(accessor->second);
-      ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, r);
+      auto& r = *boost::any_cast<MNCounter::MultinodeCounter*>(accessor->second);
+      ebbrt::EbbRef<MNCounter::MultinodeCounter>::CacheRef(id, r);
       return r;
     }
   }
@@ -68,9 +32,9 @@ Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
 #ifdef __ebbrt__
   ebbrt::EventManager::EventContext context;
   auto f = ebbrt::global_id_map->Get(id);
-  Counter::MultinodeCounter* p;
+  MNCounter::MultinodeCounter* p;
   f.Then([&f, &context, &p, id](ebbrt::Future<std::string> inner) {
-    p = new Counter::MultinodeCounter();
+    p = new MNCounter::MultinodeCounter();
     p->addTo(ebbrt::Messenger::NetworkId(inner.Get()));
     //potentially dangerous!!! no undo the join, what if race happend here, no lock.
     //the join here is not safe it will not make sure if it joined or not....
@@ -82,7 +46,7 @@ Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
   ebbrt::event_manager->SaveContext(context);
   auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
   if (inserted) {
-    ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    ebbrt::EbbRef<MNCounter::MultinodeCounter>::CacheRef(id, *p);
     // This join is eventual join, which do not check if the node is actaully joining the home node
     // however, very efficient
     //    p->Join();
@@ -91,13 +55,13 @@ Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
     return *p;
   }
 #else
-  Counter::MultinodeCounter* p;
+  MNCounter::MultinodeCounter* p;
     ebbrt::global_id_map->Set(id, ebbrt::messenger->LocalNetworkId().ToBytes());
-    p = new Counter::MultinodeCounter();
-    ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    p = new MNCounter::MultinodeCounter();
+    ebbrt::EbbRef<MNCounter::MultinodeCounter>::CacheRef(id, *p);
     auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
     if (inserted) {
-    ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, *p);
+    ebbrt::EbbRef<MNCounter::MultinodeCounter>::CacheRef(id, *p);
     return *p;
   }
 #endif
@@ -106,13 +70,13 @@ Counter::MultinodeCounter::HandleFault(ebbrt::EbbId id) {
   // retry reading
   ebbrt::LocalIdMap::ConstAccessor accessor;
   ebbrt::local_id_map->Find(accessor, id);
-  auto& r = *boost::any_cast<Counter::MultinodeCounter*>(accessor->second);
-  ebbrt::EbbRef<Counter::MultinodeCounter>::CacheRef(id, r);
+  auto& r = *boost::any_cast<MNCounter::MultinodeCounter*>(accessor->second);
+  ebbrt::EbbRef<MNCounter::MultinodeCounter>::CacheRef(id, r);
   return r;
 }
 
 
-void Counter::MultinodeCounter::Join(){
+void MNCounter::MultinodeCounter::Join(){
   //has to fix this, right now its just sending a message, which is not enough
   //should maintain the consistency
   ebbrt::kprintf("joining the home node\n");
@@ -127,7 +91,7 @@ void Counter::MultinodeCounter::Join(){
   }
 }
 
-ebbrt::Future<int> Counter::MultinodeCounter::ConsistentJoin(){
+ebbrt::Future<int> MNCounter::MultinodeCounter::ConsistentJoin(){
   //this join is a consistent join that hold untill the node itself knows its joined
  ebbrt::kprintf("joining the home node\n");
   if (size() == 1){
@@ -153,7 +117,7 @@ ebbrt::Future<int> Counter::MultinodeCounter::ConsistentJoin(){
   }
 }
 
-void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
+void MNCounter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
 				       std::unique_ptr<ebbrt::IOBuf>&& buffer){
   auto dp = buffer->GetDataPointer();
   auto id = dp.Get<uint32_t>();
@@ -230,23 +194,12 @@ void Counter::MultinodeCounter::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
 }
 
 
-std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
+std::vector<ebbrt::Future<int>> MNCounter::MultinodeCounter::Gather(){
   std::vector<ebbrt::Future<int>> ret;
   //generic gather for all the nodes. Then home node will have more than one nids.
   //other nodes will only have one nid which is the home node's nid.
   uint32_t id;
   printf("gather nodelist size=%d\n", size());
-  /*
-  if (size() == 0){
-    // if none of the nodes joined, then just do a simple local val
-    ebbrt::Promise<int> promise;
-    auto f = promise.GetFuture();
-    ret.push_back(std::move(f));
-    printf("0FE: nothing in the node list yet\n");
-    promise.SetValue(0);
-    return ret;
-  }
-  */
   for(int i = 0; i < MultinodeCounter::size(); i++){
     // if some of the nodes come up make a promise of a send n recieve pair
     // fufill the promise when gets back the node value
@@ -258,21 +211,19 @@ std::vector<ebbrt::Future<int>> Counter::MultinodeCounter::Gather(){
       std::lock_guard<std::mutex> guard(lock_);
       id = 2 * (i+1);
       bool inserted;
-      // insert our promise into the hash table
       std::tie(std::ignore, inserted) =
 	promise_map_.emplace(id, std::move(promise));
       assert(inserted);
     }
-    // Construct and send the ping message
     auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
     auto dp = buf->GetMutDataPointer();
-    dp.Get<uint32_t>() = id + 1;  // Ping messages are odd
+    dp.Get<uint32_t>() = id + 1;  
     SendMessage(nid, std::move(buf));
   }
   return ret;
 }
 
-int Counter::MultinodeCounter::GlobalVal(){
+int MNCounter::MultinodeCounter::GlobalVal(){
   //getting back a vector from gather, simply sum up the counts
   // if the nodelist is 0, which means non of th nodes are in the list yet, so just return the local value
   if (size() == 0){
