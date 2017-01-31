@@ -14,6 +14,11 @@
 using namespace ebbrt;
 EBBRT_PUBLISH_TYPE(, Counter);
 
+const int JRQ = 0;
+const int NRQ = 1;
+const int HNRQ = 2;
+const int FF = 3;
+
 void ebbrt::Counter::Up() { ++count_; };
 void ebbrt::Counter::Down() { --count_; };
 uint64_t ebbrt::Counter::GetLocal() { return count_; };
@@ -70,78 +75,6 @@ ebbrt::Counter::Create(int init, ebbrt::EbbId id){
 #endif
     return ebbrt::EbbRef<Counter>(id);
 };
-
-void ebbrt::Counter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
-				       std::unique_ptr<ebbrt::IOBuf>&& buffer){
-  auto dp = buffer->GetDataPointer();
-  auto id = dp.Get<uint32_t>();
-  ebbrt::kprintf("id is %d\n", id);
-
-  if(id == 0){
-    addTo(nid);
-    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
-    auto dp = buf->GetMutDataPointer();
-    dp.Get<uint32_t>() = id + 10; 
-    SendMessage(nid, std::move(buf));
-    return;
-  }
-  if(id == 10){
-    std::lock_guard<std::mutex> guard(lock_);
-    auto it = root_->promise_map_.find(id);
-    assert(it != root_->promise_map_.end());
-    it->second.SetValue(0);
-    root_->promise_map_.erase(it);
-    return;
-  }
-
-  if (id & 1){
-    //This way is not generic
-    //limit the functionality of each nodes
-    // has to set special flags in the switch statement
-#ifdef __ebbrt__
-    //if its back end, send the root val to home node
-    ebbrt::kprintf("RecieveMessage: BM sending local val %d \n", GetRoot());
-    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
-    auto dp = buf->GetMutDataPointer();
-    dp.Get<uint32_t>() = id - 1;  // Send back with the original id
-    dp.Get<uint32_t>() = GetRoot();
-    SendMessage(nid, std::move(buf));
-    return;
-#else
-    //if front end, call gather and reply with the send
-    printf("ReceiveMessage: FE calling Gather!\n");
-    auto vfg = Gather();
-    auto v = ebbrt::when_all(vfg).Then([this, nid, id](auto vf){
-        auto v = vf.Get();
-        int gather_sum = this->GetRoot();
-        for(uint32_t i = 0; i< v.size(); i++){
-  	  gather_sum += v[i];
-       }
-	ebbrt::kprintf("sum: %d\n", gather_sum);
-	auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
-	auto dp = buf->GetMutDataPointer();
-	dp.Get<uint32_t>() = id - 1;
-	dp.Get<uint32_t>() = gather_sum;
-	this->SendMessage(nid, std::move(buf));
-	});
-    return;
-#endif
-  }
-  if (!(id & 1)){
-    //this fufills the promises in the promise map.
-    //sort of like committing transactions for each send recieve pair
-    auto val = dp.Get<uint32_t>();
-    ebbrt::kprintf("RecieveMessage: recieved remote val %d\n", val);
-    std::lock_guard<std::mutex> guard(lock_);
-    auto it = root_->promise_map_.find(id);
-    assert(it != root_->promise_map_.end());
-    it->second.SetValue(val);
-    root_->promise_map_.erase(it);
-    return;
-  }
-
-}
-
 
 std::vector<ebbrt::Future<int>> ebbrt::Counter::Gather(){
   std::vector<ebbrt::Future<int>> ret;
@@ -217,3 +150,156 @@ int ebbrt::Counter::GlobalVal(){
 #endif
 }
 
+void ebbrt::Counter::ReceiveMessage(ebbrt::Messenger::NetworkId nid, 
+				       std::unique_ptr<ebbrt::IOBuf>&& buffer){
+  auto dp = buffer->GetDataPointer();
+  auto id = dp.Get<uint32_t>();
+  auto command = decode(id);
+
+  switch(command){
+  case JRQ:
+    JoinResponse(nid);
+    break;
+  case NRQ:
+    nodeReply(nid, id-1, GetRoot());
+    break;
+  case HNRQ:
+    homeReply(nid, id-1, GetRoot());
+    break;
+  case FF:
+    auto val = dp.Get<uint32_t>();
+    ebbrt::kprintf("RecieveMessage: recieved remote val %d\n", val);
+    Fullfill(val, id);
+    break;
+  }
+/*
+  if(id == 0){
+    addTo(nid);
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = id + 10; 
+    SendMessage(nid, std::move(buf));
+    return;
+  }
+  if(id == 10){
+    std::lock_guard<std::mutex> guard(lock_);
+    auto it = root_->promise_map_.find(id);
+    assert(it != root_->promise_map_.end());
+    it->second.SetValue(0);
+    root_->promise_map_.erase(it);
+    return;
+  }
+
+  if (id & 1){
+    //This way is not generic
+    //limit the functionality of each nodes
+    // has to set special flags in the switch statement
+#ifdef __ebbrt__
+    //if its back end, send the root val to home node
+    ebbrt::kprintf("RecieveMessage: BM sending local val %d \n", GetRoot());
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = id - 1;  // Send back with the original id
+    dp.Get<uint32_t>() = GetRoot();
+    SendMessage(nid, std::move(buf));
+    return;
+#else
+    //if front end, call gather and reply with the send
+    printf("ReceiveMessage: FE calling Gather!\n");
+    auto vfg = Gather();
+    auto v = ebbrt::when_all(vfg).Then([this, nid, id](auto vf){
+        auto v = vf.Get();
+        int gather_sum = this->GetRoot();
+        for(uint32_t i = 0; i< v.size(); i++){
+  	  gather_sum += v[i];
+       }
+	ebbrt::kprintf("sum: %d\n", gather_sum);
+	auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+	auto dp = buf->GetMutDataPointer();
+	dp.Get<uint32_t>() = id - 1;
+	dp.Get<uint32_t>() = gather_sum;
+	this->SendMessage(nid, std::move(buf));
+	});
+    return;
+#endif
+  }
+  if (!(id & 1)){
+    //this fufills the promises in the promise map.
+    //sort of like committing transactions for each send recieve pair
+    auto val = dp.Get<uint32_t>();
+    ebbrt::kprintf("RecieveMessage: recieved remote val %d\n", val);
+    std::lock_guard<std::mutex> guard(lock_);
+    auto it = root_->promise_map_.find(id);
+    assert(it != root_->promise_map_.end());
+    it->second.SetValue(val);
+    root_->promise_map_.erase(it);
+    return;
+  }
+*/
+}
+
+void ebbrt::Counter::JoinResponse(ebbrt::Messenger::NetworkId nid){
+    addTo(nid);
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = 10; 
+    dp.Get<uint32_t>() = 0;
+    SendMessage(nid, std::move(buf));
+    return;
+}
+
+void ebbrt::Counter::Fullfill(int val, uint32_t id){
+    std::lock_guard<std::mutex> guard(lock_);
+    auto it = root_->promise_map_.find(id);
+    assert(it != root_->promise_map_.end());
+    it->second.SetValue(val);
+    root_->promise_map_.erase(it);
+    return;
+}
+
+void ebbrt::Counter::homeReply(ebbrt::Messenger::NetworkId nid, uint32_t id, int val){
+    auto vfg = Gather();
+    auto v = ebbrt::when_all(vfg).Then([val, nid, id, this](auto vf){
+        auto v = vf.Get();
+        int gather_sum = val;
+        for(uint32_t i = 0; i< v.size(); i++){
+  	  gather_sum += v[i];
+       }
+	ebbrt::kprintf("sum: %d\n", gather_sum);
+	auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+	auto dp = buf->GetMutDataPointer();
+	dp.Get<uint32_t>() = id;
+	dp.Get<uint32_t>() = gather_sum;
+	this->SendMessage(nid, std::move(buf));
+	});
+    return;
+}
+
+void ebbrt::Counter::nodeReply(ebbrt::Messenger::NetworkId nid,  uint32_t id, int val){
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = id ;  // Send back with the original id
+    dp.Get<uint32_t>() = val;
+    SendMessage(nid, std::move(buf));
+    return;
+}
+
+int ebbrt::Counter::decode(int id){
+  ebbrt::kprintf("id is %d\n", id);
+  if(id == 0){
+    return JRQ;
+  }
+  if(id & 1){
+#ifdef __ebbrt__
+    return NRQ;
+#else
+    return HNRQ;
+#endif
+  }
+  if(!(id & 1)){
+    return FF;
+  }
+  else{
+    return -1;
+  }
+}

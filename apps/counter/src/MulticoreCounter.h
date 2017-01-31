@@ -47,8 +47,13 @@ private:
   std::mutex lock_;
   ebbrt::Future<int> ConsistentJoin( ebbrt::CounterRoot * root );
   std::vector<ebbrt::Future<int>> Gather();
-  ebbrt::Messenger::NetworkId nlist(int i){ return root_->nlist(i); }
-  void addTo(ebbrt::Messenger::NetworkId nid){  root_ -> addTo(nid);  }
+  ebbrt::Messenger::NetworkId nlist(int i){ return root_->nlist(i); };
+  void addTo(ebbrt::Messenger::NetworkId nid){  root_ -> addTo(nid);  };
+  int decode(int id);
+  void nodeReply(ebbrt::Messenger::NetworkId nid,  uint32_t id, int val);
+  void homeReply(ebbrt::Messenger::NetworkId nid, uint32_t id, int val);
+  void JoinResponse(ebbrt::Messenger::NetworkId nid);
+  void Fullfill(int val, uint32_t id);
   uint64_t count_ = 0;
 public:
   // implicit use of template constructors
