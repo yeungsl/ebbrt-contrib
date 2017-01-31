@@ -6,24 +6,28 @@
 #include "Printer.h"
 #include "../Counter.h"
 #include "../MulticoreCounter.h"
+#include <ebbrt/SpinBarrier.h>
 
 void AppMain() {
   
   ebbrt::kprintf("1 BM: back end up!\n");
-  //initialize the multinode counter
-  // Counter::node_counter->Inc();
-  //initialize the multicorenode counter
-  ebbrt::EbbRef<ebbrt::Counter> counter(ebbrt::ebb_allocator->Allocate());
-  ebbrt::kprintf("1 BM: Inc counter\n");
-  /*
-  //Using future Gather() faster
-  auto f = Counter::node_counter->Gather();
-  when_all(f).Then([&](auto vf){
-    ebbrt::kprintf("1 BM: gather sum %d\n", vf.Get()[0]);
-  });
-  //Using int gather() slow; thread has to be blocked
 
-  auto r = Counter::node_counter->GlobalVal();
-  ebbrt::kprintf("sum: %d\n", r);
-  */
+  auto counter = ebbrt::Counter::Create(0);
+  auto barrier = new ebbrt::SpinBarrier(ebbrt::Cpu::Count());
+  for (size_t core = 1; core < ebbrt::Cpu::Count(); ++core) {
+    ebbrt::event_manager->SpawnRemote(
+	   [counter, &barrier]() {
+            counter->Up();
+            barrier->Wait();
+            },
+          core);
+    }
+    counter->Up();
+    barrier->Wait();
+    ebbrt::kprintf("1 BM: Inc counter\n");
+    if((size_t)ebbrt::Cpu::GetMine() == 0){
+	ebbrt::kprintf("1 BM: root count %d\n", (int)counter->GetRoot());
+    }
+    ebbrt::kprintf("1 BM: global val %d\n", counter->GlobalVal());
+
 }

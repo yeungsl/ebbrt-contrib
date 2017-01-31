@@ -1,7 +1,7 @@
 #ifndef __COUNTER_H__
 #define __COUNTER_H__
 
-#include "MulticoreEbb.h"
+
 #include <ebbrt/LocalIdMap.h>
 #include <ebbrt/Messenger.h>
 #include <ebbrt/Runtime.h>

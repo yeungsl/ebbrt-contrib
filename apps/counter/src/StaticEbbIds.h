@@ -8,6 +8,6 @@
 #include <ebbrt/StaticIds.h>
 
 enum : ebbrt::EbbId { kPrinterEbbId = ebbrt::kFirstStaticUserId,
-                      kCounterEbbId};
+    kCounterEbbId, kNcCounterEbbId};
 
 #endif  // APPS_HELLOWORLD_SRC_STATICEBBIDS_H_
