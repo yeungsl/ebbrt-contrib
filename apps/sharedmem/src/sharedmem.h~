@@ -1,0 +1,55 @@
+#include <ebbrt/native/VMemAllocator.h>
+#include <ebbrt/native/VMem.h>
+#include <ebbrt/native/PageAllocator.h>
+#include <ebbrt/native/MemMap.h>
+#include <ebbrt/native/PMem.h>
+#include "RemoteMem.h"
+
+
+class NewPageFaultHandler : public ebbrt::VMemAllocator::PageFaultHandler {
+  ebbrt::Pfn page_;
+  uint64_t pageLen;
+  uint64_t granularity;
+  uint64_t ps = ebbrt::pmem::kPageSize;
+public:
+  void setPage(ebbrt::Pfn page, uint64_t length) {
+    page_ = page;
+    pageLen = length;
+    if (pageLen >= 1<<21){
+      ps = 1<<21;
+    }
+    granularity = pageLen/ps;
+  }
+  void HandleFault(ebbrt::idt::ExceptionFrame* ef, uintptr_t faulted_address) override {
+    ebbrt::kprintf("faulted address %#llx\n", faulted_address);
+    auto pptr = (volatile uint32_t*) page_.ToAddr();
+    //    ebbrt::kprintf("paddr = %#llx\n", page_.ToAddr());
+    auto rm = ebbrt::EbbRef<RemoteMemory>(kRemoteMEbbId);
+    auto f_c = rm->ConsistentJoin();
+    auto reply = f_c.Block().Get();
+    ebbrt::kprintf("BM: reply is %d\n", reply);
+    if (reply == 10){
+      rm->sendPage(ps, pptr);
+    }
+    if (reply == 11){
+      auto f = rm->queryPage(pptr);
+      auto r = f.Block().Get();
+      ebbrt::kprintf("BM: reply is %d\n", reply);      
+    }
+    auto vpage = ebbrt::Pfn::Down(faulted_address);
+    //    int c = 0;
+    //    ebbrt::kprintf("page length %i\n", pageLen);
+    auto page = page_;
+    for (uint64_t i = 0; i < granularity; i++){
+	ebbrt::vmem::MapMemory(vpage, page, ps);
+	vpage = ebbrt::Pfn::Down(vpage.ToAddr() + ps);
+	page = ebbrt::Pfn::Down(page.ToAddr() + ps);
+	//	c++;
+     }
+    //     ebbrt::kprintf("called MapMemory for %i times.\n", c);
+  }
+
+};
+
+
+
