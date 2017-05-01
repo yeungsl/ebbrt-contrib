@@ -45,29 +45,6 @@ public:
 	rm->getPage(pptr);
       }
     }
-    /*
-    auto rm = ebbrt::EbbRef<RemoteMemory>(kRemoteMEbbId);
-    rm->size();
-    auto f_c = rm->ConsistentJoin();
-    auto reply = f_c.Block().Get();
-    ebbrt::kprintf("BM: reply is %d, pointer size %d\n", reply,  ((int)ps*(1<<pageLen))/4);
-    if (reply == 10){
-      for(uint64_t i = 0; i < iteration; i++){
-	*pptr = value;
-	pptr++;
-      }
-      auto pptr_ = (volatile uint32_t * )pfn.ToAddr();
-      rm->sendPage(pageLen, pptr_, iteration);
-    }
-    if (reply == 11){
-      auto f = rm->queryPage();
-      auto r = f.Block().Get();
-      ebbrt::kprintf("BM: reply is %d\n", r);
-      if (r == 8){
-	rm->getPage(pptr);
-      }
-    }
-    */
     auto vpage = ebbrt::Pfn::Down(faulted_address);
     auto page = pfn;
     for (uint64_t i = 0; i < granularity; i++){

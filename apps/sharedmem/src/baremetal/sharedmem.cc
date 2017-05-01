@@ -30,6 +30,8 @@ void AppMain() {
   auto addr = vfn.ToAddr();
   auto ptr = (volatile uint32_t *)addr;
   lazyMap(v, iteration, mul, ptr);
+  ebbrt::kprintf("GOT A PAGE VALUE IS: 0x%x\n",*ptr);
+
 
   if (unmap == 1){
   printer->Print("BEGIN TO UNMAP THE VIRTUAL PAGE.\n");
