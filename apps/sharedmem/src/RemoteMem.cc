@@ -53,70 +53,66 @@ RemoteMemory::HandleFault(ebbrt::EbbId id){
 }
 
 
-ebbrt::Future<int> RemoteMemory::ConsistentJoin(){
+ebbrt::Future<int> RemoteMemory::QueryMaster(int i){
   //this join is a consistent join that hold untill the node itself knows its joined
   //ebbrt::kprintf("joining the home node\n");
-  if (size() == 1){
-    ebbrt::Promise<int> promise;
-    auto f = promise.GetFuture();
-    int id;
-    {
-      std::lock_guard<std::mutex> guard(lock_);
+  int id;
+  ebbrt::Promise<int> promise;
+  auto f = promise.GetFuture();
+  {
+    std::lock_guard<std::mutex> guard(lock_);
+    if (i == 0){
+#ifdef __ebbrt__
+      int p = 32765;
+      ebbrt::kprintf("Start Listening on port %d\n", p);
+      ebbrt::messenger->StartListening(p);
+#endif
       id = 10;
-      bool inserted;
-      std::tie(std::ignore, inserted) =
-	promise_map_.emplace(id, std::move(promise));
-      assert(inserted);
+    }else{
+      id = 8;
     }
-    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
-    auto dp = buf->GetMutDataPointer();
-    dp.Get<uint32_t>() = 0; 
-    SendMessage(nlist(0), std::move(buf));
-    return f;
+    bool inserted;
+    std::tie(std::ignore, inserted) =
+      promise_map_.emplace(id, std::move(promise));
+    assert(inserted);
   }
-  else{
-    ebbrt::kabort("no home node");
-  }
-
+  auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
+  auto dp = buf->GetMutDataPointer();
+  dp.Get<uint32_t>() = i; 
+  SendMessage(nodelist[0], std::move(buf));
+  return f;
 }
 
-void RemoteMemory::sendPage(uint64_t len, volatile uint32_t * pptr, uint64_t iteration){
-  auto buffer = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint64_t)+len);
-  ebbrt::kprintf("uint32_t = %d, len = %d, loop = %d\n", sizeof(uint64_t), len, iteration);
+void RemoteMemory::sendPage(ebbrt::Messenger::NetworkId dst){
+
+  auto buffer = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint64_t)+tem_buffer[0]);
+  ebbrt::kprintf("size of buffer = %d, len = %d, loop = %d\n", sizeof(buffer), tem_buffer[0], tem_buffer[1]);
   auto dp = buffer->GetMutDataPointer();
   dp.Get<uint32_t>() = 8;
-  dp.Get<uint64_t>() = len;
-  dp.Get<uint64_t>() = iteration;
+  dp.Get<uint64_t>() = tem_buffer[0];
+  dp.Get<uint64_t>() = tem_buffer[1];
+  for (uint64_t i = 0; i < tem_buffer[1]; i++){
+    dp.Get<uint32_t>() = tem_buffer[i+2];
+    // ebbrt::kprintf("BM: value read into buffer 0x%llx\n", tem_buffer[i+2]);
+  }
+  ebbrt::kprintf("destination nid: %s\n", dst.ToString().c_str());  
+
+  SendMessage(dst, std::move(buffer));
+}
+
+void RemoteMemory::cachePage(uint64_t len, volatile uint32_t * pptr, uint64_t iteration){
+  ebbrt::kprintf("Cached the paged\n");
+
+  tem_buffer.push_back(len);
+  tem_buffer.push_back(iteration);
   for (uint64_t i = 0; i < iteration; i++){
-    dp.Get<uint32_t>() = *pptr;
+    tem_buffer.push_back(*pptr);
     //ebbrt::kprintf("BM: value read into buffer 0x%llx\n", *pptr);
     pptr++;
   }
-  SendMessage(nlist(0), std::move(buffer));
-}
-
-ebbrt::Future<int> RemoteMemory::queryPage(){
-  if (size() == 1){
-    ebbrt::Promise<int> promise;
-    auto f = promise.GetFuture();
-    int id;
-    {
-      std::lock_guard<std::mutex> guard(lock_);
-      id = 8;
-      bool inserted;
-      std::tie(std::ignore, inserted) =
-	promise_map_.emplace(id, std::move(promise));
-      assert(inserted);
-    }
-    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
-    auto dp = buf->GetMutDataPointer();
-    dp.Get<uint32_t>() = id + 1; 
-    SendMessage(nlist(0), std::move(buf));
-    return f;
-  }
-  else{
-    ebbrt::kabort("no home node");
-  }
+  ebbrt::kprintf("size of tem_buffer = %d, len = %d, loop = %d\n", tem_buffer.size(), len, iteration);
+  cached = true;
+  return;
 }
 
 void RemoteMemory::getPage(volatile uint32_t* pptr){
@@ -139,55 +135,66 @@ void RemoteMemory::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
   ebbrt::kprintf("id is %d\n", id);
 
   if(id == 0){
-    addTo(nid);
-    ebbrt::kprintf("node list length %d\n", nodelist.size());
     auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
     auto dp = buf->GetMutDataPointer();
-    if (size() == 1){
+    addTo(nid);
+    if (size() == 1) {
       dp.Get<uint32_t>() = 10;
-    }else{
+      }else{
       dp.Get<uint32_t>() = 11;
     }
+    dp.Get<uint32_t>() = 10;
     SendMessage(nid, std::move(buf));
     return;
   }
 
   if (id == 8){
-    std::lock_guard<std::mutex> guard(lock_);
-    auto len = dp.Get<uint64_t>();
-    auto loop = dp.Get<uint64_t>();
-    ebbrt::kprintf("page recieved has length %d \n", loop);
-    tem_buffer.push_back(len);
-    tem_buffer.push_back(loop);
-    for (uint64_t i = 0; i < loop; i++){
-      tem_buffer.push_back(dp.Get<uint32_t>());
-      //ebbrt::kprintf("FE: value get from buffer 0x%llx\n", tem_buffer[i+2]);
-    }
 #ifdef __ebbrt__
-    auto it = promise_map_.find(id);
+    auto len = dp.Get<uint64_t>();
+    auto iteration = dp.Get<uint64_t>();
+    tem_buffer.push_back(len);
+    tem_buffer.push_back(iteration);
+    for(uint64_t i = 0; i < iteration; i++){
+      tem_buffer.push_back(dp.Get<uint32_t>());
+    }
+    auto it = promise_map_.find(8);
     assert(it != promise_map_.end());
-    it->second.SetValue(id);
+    it->second.SetValue(1);
     promise_map_.erase(it);
+
+#else
+    auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint64_t));
+    auto dp = buf->GetMutDataPointer();
+    dp.Get<uint32_t>() = 9;
+    char dst[20];
+    std::strcpy(dst, nid.ToString().c_str());
+    auto ip = std::strtok(dst, ".");
+    while(ip != NULL){
+      dp.Get<uint8_t>() = std::atoi(ip);
+      ip = std::strtok(NULL, ".");
+    }
+    SendMessage(nodelist[0], std::move(buf));
 #endif
     return;
   }
 
   if (id == 9){
-    std::lock_guard<std::mutex> guard(lock_);
-    auto buffer = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t)+sizeof(uint64_t)+sizeof(uint64_t)+tem_buffer[0]);
-    auto dp = buffer->GetMutDataPointer();
-    dp.Get<uint32_t>() = 8;
-    dp.Get<uint64_t>() = tem_buffer[0];
-    dp.Get<uint64_t>() = tem_buffer[1];
-    for (uint64_t i = 0; i < tem_buffer[1]; i++){
-      dp.Get<uint32_t>() = tem_buffer[i+2];
+#ifdef __ebbrt__
+    if (cached){
+	std::array<uint8_t, 4> ar_ip = {0, 0, 0, 0};
+	for(int i = 0; i < 4; i++){
+	  ar_ip[i] = dp.Get<uint8_t>();
+	}
+	auto dst_nid = ebbrt::Messenger::NetworkId(std::string(reinterpret_cast<const char*>(ar_ip.data()), 4));
+	sendPage(dst_nid);
     }
-    SendMessage(nid, std::move(buffer));
+#endif
     return;
   }
+
   if(id >= 10 && id < 12){
-    std::lock_guard<std::mutex> guard(lock_);
-    auto it = promise_map_.find(10);
+    auto trans_num = dp.Get<uint32_t>();
+    auto it = promise_map_.find(trans_num);
     assert(it != promise_map_.end());
     it->second.SetValue(id);
     promise_map_.erase(it);
