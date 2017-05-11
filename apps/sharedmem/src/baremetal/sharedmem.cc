@@ -4,7 +4,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "Printer.h"
-#include "../sharedmem.h"
+#include "../pageFaultHandle.h"
 
 // a function to be called to invoke events in other cores
 void test(uintptr_t addr);
@@ -21,11 +21,14 @@ void AppMain() {
   int v = 0xDEADBEEF; // value that can be filled into the page
   int unmap = 0;//a flag for unmaping
 
-  //create the instances of the page fault handler
+
   //and allocate the virtual memory pages which will hit page fault when dereferrenced
   printer->Print("BEGIN TO ALLOCATE THE VIRTUAL PAGE.\n");
+  auto pfn = ebbrt::page_allocator->Alloc(0);
+  //create the instances of the page fault handler
   auto pf = std::make_unique<NewPageFaultHandler>();
-  pf->setPage(len, v);
+  //put variables into the handler
+  pf->setPage(len, v, pfn);
   auto vfn = ebbrt::vmem_allocator->Alloc(mul*(1<<len), std::move(pf));
   auto addr = vfn.ToAddr();
   auto ptr = (volatile uint32_t *)addr;

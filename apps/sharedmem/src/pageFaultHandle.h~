@@ -14,8 +14,10 @@ class NewPageFaultHandler : public ebbrt::VMemAllocator::PageFaultHandler {
   uint64_t iteration;
   int numberOfPages;
   uint64_t ps = ebbrt::pmem::kPageSize;
+  ebbrt::Pfn pfn_;
 public:
-  void setPage(int l, int v) {
+  void setPage(int l, int v, ebbrt::Pfn pfn) {
+    pfn_ = pfn;
     numberOfPages = l;
     pageLen = ps*(1 << l);
     value = v;
@@ -27,26 +29,25 @@ public:
   }
   void HandleFault(ebbrt::idt::ExceptionFrame* ef, uintptr_t faulted_address) override {
     ebbrt::kprintf("faulted address %#llx, desired page  %d, value 0x%x, on core %d\n", faulted_address, numberOfPages, value, (size_t)ebbrt::Cpu::GetMine());
-    auto pfn = ebbrt::page_allocator->Alloc(numberOfPages);
-    auto pptr = (volatile uint32_t*) pfn.ToAddr();
-    auto f_c = rm->QueryMaster(0);
+    auto pptr = (volatile uint32_t*) pfn_.ToAddr();
+    auto f_c = rm->QueryMaster(OWNERSHIP);
     auto reply = f_c.Block().Get();
-    if (reply == 10){
+    if (reply == MASTER){
       for(uint64_t i = 0; i < iteration; i++){
 	*pptr = value;
 	pptr++;
       }
-      auto pptr_ = (volatile uint32_t * )pfn.ToAddr();
+      auto pptr_ = (volatile uint32_t * )pfn_.ToAddr();
       rm->cachePage(pageLen, pptr_, iteration);
     }else{
-      auto f_get = rm->QueryMaster(8);
+      auto f_get = rm->QueryMaster(PAGE);
       auto reply = f_get.Block().Get();
-      if (reply == 1){
-	rm->getPage(pptr);
+      if (reply == SUCCESS){
+	rm->fetchPage(pptr);
       }
     }
     auto vpage = ebbrt::Pfn::Down(faulted_address);
-    auto page = pfn;
+    auto page = pfn_;
     for (uint64_t i = 0; i < granularity; i++){
 	ebbrt::vmem::MapMemory(vpage, page, ps);
 	vpage = ebbrt::Pfn::Down(vpage.ToAddr() + ps);

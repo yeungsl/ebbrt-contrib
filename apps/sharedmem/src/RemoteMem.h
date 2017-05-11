@@ -7,7 +7,8 @@
 #include <ebbrt/Debug.h>
 #include "StaticEbbIds.h"
 #include <unordered_map>
-
+// Defining command for query master
+enum commands {PAGE, OWNERSHIP, FUFILL, SEND, MASTER, FOLLOWER, SUCCESS};
 
 class RemoteMemory : public ebbrt::Messagable<RemoteMemory>{
  private:
@@ -22,14 +23,13 @@ class RemoteMemory : public ebbrt::Messagable<RemoteMemory>{
       nodelist.push_back(nid);
     }
   }
-
+  void sendPage(ebbrt::Messenger::NetworkId dst);
  public:
   void ReceiveMessage(ebbrt::Messenger::NetworkId nid, std::unique_ptr<ebbrt::IOBuf>&& buffer);
   static RemoteMemory & HandleFault(ebbrt::EbbId id);
-  ebbrt::Future<int> QueryMaster(int i);
+  ebbrt::Future<int> QueryMaster(int command);
   int size(){ return int(nodelist.size()); }  
-  void sendPage(ebbrt::Messenger::NetworkId dst);
-  void getPage(volatile uint32_t* pptr);
+  void fetchPage(volatile uint32_t* pptr);
   void cachePage(uint64_t len, volatile uint32_t * pptr, uint64_t iteration);
 };
 constexpr auto rm = ebbrt::EbbRef<RemoteMemory>(kRemoteMEbbId);

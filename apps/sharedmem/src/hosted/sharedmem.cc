@@ -32,10 +32,10 @@ int main(int argc, char** argv) {
     Printer::Init().Then([bindir](ebbrt::Future<void> f) {
 	f.Get();
 	if (rm->size() == 0){
-	  ebbrt::node_allocator->AllocateNode(bindir.string());
+	  ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
 	  std::chrono::seconds sec(20);
 	  std::this_thread::sleep_for(sec);
-	  ebbrt::node_allocator->AllocateNode(bindir.string());
+	  ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
 	}
       });
   }

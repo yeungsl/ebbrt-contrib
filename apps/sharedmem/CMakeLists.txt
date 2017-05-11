@@ -9,14 +9,14 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall -Werror")
 
 set(HOSTED_SOURCES
-      src/sharedmem.h
+      src/pageFaultHandle.h
       src/RemoteMem.h
       src/RemoteMem.cc
       src/hosted/sharedmem.cc
       src/hosted/Printer.cc)
 
 set(BAREMETAL_SOURCES
-      src/sharedmem.h
+      src/pageFaultHandle.h
       src/RemoteMem.h
       src/RemoteMem.cc
       src/baremetal/sharedmem.cc
