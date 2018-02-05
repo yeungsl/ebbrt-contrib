@@ -1,8 +1,10 @@
 #include <ebbrt/GlobalIdMap.h>
 #include <ebbrt/UniqueIOBuf.h>
 #include <ebbrt/IOBuf.h>
+#include <iostream>
+#include <sstream>
 #include "RemoteMem.h"
-
+EBBRT_PUBLISH_TYPE(, RemoteMemory);
 RemoteMemory &
 RemoteMemory::HandleFault(ebbrt::EbbId id){
   {
@@ -34,7 +36,7 @@ RemoteMemory::HandleFault(ebbrt::EbbId id){
   }
 #else
   RemoteMemory* p;
-  ebbrt::global_id_map->Set(id, ebbrt::messenger->LocalNetworkId().ToBytes());
+  ebbrt::global_id_map->Set(id, ebbrt::GlobalIdMap::OptArgs({.data=ebbrt::messenger->LocalNetworkId().ToBytes()}));
   p = new RemoteMemory();
   ebbrt::EbbRef<RemoteMemory>::CacheRef(id, *p);
   auto inserted = ebbrt::local_id_map->Insert(std::make_pair(id, p));
@@ -60,6 +62,7 @@ ebbrt::Future<int> RemoteMemory::QueryMaster(int command){
     // ONLY TWO COMMAND HAS BEEN IMPLMENTED
     ebbrt::kabort("UNSEEN COMMAND\n");
   }
+  /* Original QueryMaster
   if (command == PAGE){
     // for the back end messenger interface to connect to each other
     // TODO: implement a TCP handler instead of using messenger
@@ -69,6 +72,7 @@ ebbrt::Future<int> RemoteMemory::QueryMaster(int command){
       ebbrt::messenger->StartListening(p);
 #endif
   }
+  */
   // making a transaction map and send message to front end
   ebbrt::Promise<int> promise;
   auto f = promise.GetFuture();
@@ -83,7 +87,7 @@ ebbrt::Future<int> RemoteMemory::QueryMaster(int command){
   }
   auto buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t));
   auto dp = buf->GetMutDataPointer();
-  dp.Get<uint32_t>() = command; 
+  dp.Get<uint32_t>() = command;
   SendMessage(nodelist[0], std::move(buf));
   return f;
 }
@@ -113,7 +117,7 @@ void RemoteMemory::cachePage(uint64_t len, volatile uint32_t * pptr, uint64_t it
   // MASTER ONLY !!!!!
   // cache the page 
   // NOTICE: the follower might be asking page before the page is cached, therefore should drop the request if not cached
-  ebbrt::kprintf("Cached the paged\n");
+  ebbrt::kprintf("Cached the page\n");
   tem_buffer.push_back(len);
   tem_buffer.push_back(iteration);
   for (uint64_t i = 0; i < iteration; i++){
@@ -153,22 +157,85 @@ void RemoteMemory::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
 			 std::unique_ptr<ebbrt::IOBuf>&& buffer){
   auto dp = buffer->GetDataPointer();
   auto id = dp.Get<uint32_t>();
-  ebbrt::kprintf("id is %d\n", id);
+  auto str_nid = nid.ToString();
+
   switch(id){
+
+  case CONNECT:
+    {
+      std::stringstream ss;
+      ss << str_nid << ": id " << id << " GOT CONNECT QUERY" << std::endl;
+      ebbrt::kprintf(ss.str().c_str());
+#ifdef __ebbrt__
+      //greb ip address
+      std::array<uint8_t, 4> ar_ip = {0, 0, 0, 0};
+      for(int i = 0; i < 4; i++){
+        ar_ip[i] = dp.Get<uint8_t>();
+      }
+      auto dst_nid = ebbrt::Messenger::NetworkId(std::string(reinterpret_cast<const char*>(ar_ip.data()), 4));
+      //send a message
+      auto co_buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t)*3);
+      auto co_dp = co_buf->GetMutDataPointer();
+      co_dp.Get<uint32_t>() = FUFILL;
+      co_dp.Get<uint32_t>() = OWNERSHIP;
+      co_dp.Get<uint32_t>() = FOLLOWER;
+      SendMessage(dst_nid, std::move(co_buf));
+#else
+      ebbrt::kabort("FRONT END SHOULD NOT RECIEVE THIS \n");
+#endif
+      break;
+    }
+
 
   case OWNERSHIP:
     {
+      std::stringstream ss;
+      ss << str_nid << ": id " << id << " GOT OWNERSHIP QUERY" << std::endl;
+      ebbrt::kprintf(ss.str().c_str());
+      /* orginal ownership
       auto ow_buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t) * 3);
       auto ow_dp = ow_buf->GetMutDataPointer();
       addTo(nid);
       ow_dp.Get<uint32_t>() = FUFILL;
       ow_dp.Get<uint32_t>() = OWNERSHIP;
       if (size() == 1) {
-	ow_dp.Get<uint32_t>() = MASTER;
+        ow_dp.Get<uint32_t>() = MASTER;
       }else{
-	ow_dp.Get<uint32_t>() = FOLLOWER;
+        ow_dp.Get<uint32_t>() = FOLLOWER;
       }
       SendMessage(nid, std::move(ow_buf));
+      */
+
+      addTo(nid);
+      if (size() == 1){
+        std::stringstream s_debug;
+        s_debug << " REPLY " << str_nid << " MASTER" << std::endl;
+        ebbrt::kprintf(s_debug.str().c_str());
+
+        auto ow_buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t)*3);
+        auto ow_dp = ow_buf->GetMutDataPointer();
+        ow_dp.Get<uint32_t>() = FUFILL;
+        ow_dp.Get<uint32_t>() = OWNERSHIP;
+        ow_dp.Get<uint32_t>() = MASTER;
+        SendMessage(nid, std::move(ow_buf));
+      }else{
+          std::stringstream s_debug;
+          s_debug << " REPLY " << str_nid << " FOLLOWER" << std::endl;
+          ebbrt::kprintf(s_debug.str().c_str());
+
+          auto ow_buf = ebbrt::MakeUniqueIOBuf(sizeof(uint32_t)*2);
+          auto ow_dp = ow_buf->GetMutDataPointer();
+          ow_dp.Get<uint32_t>() = CONNECT;
+          char dst[20];
+          std::strcpy(dst, nid.ToString().c_str());
+          auto ip = std::strtok(dst, ".");
+          while(ip != NULL){
+            ow_dp.Get<uint8_t>() = std::atoi(ip);
+            ip = std::strtok(NULL, ".");
+          }
+          SendMessage(nodelist[0], std::move(ow_buf));
+      }
+
       break;
     }
 
@@ -178,32 +245,39 @@ void RemoteMemory::ReceiveMessage(ebbrt::Messenger::NetworkId nid,
     // 1. checking ownership
     // 2. recieving a page
     {
+      std::stringstream ss_f;
+      ss_f << str_nid << ": id " << id << " GOT FUFILL QUERY" << std::endl;
+      ebbrt::kprintf(ss_f.str().c_str());
       auto trans_num = dp.Get<uint32_t>();
       switch(trans_num){
       case OWNERSHIP:
-	{
-	  auto it = promise_map_.find(OWNERSHIP);
-	  assert(it != promise_map_.end());
-	  auto fufill_v = dp.Get<uint32_t>();
-	  it->second.SetValue(fufill_v);
-	  promise_map_.erase(it);
-	  break;
-	}
+        {
+          std::stringstream ss_fo;
+          ss_fo << str_nid << ": id " << trans_num << " FUFILL OWNERSHIP" << std::endl;
+          ebbrt::kprintf(ss_fo.str().c_str());
+
+          auto it = promise_map_.find(OWNERSHIP);
+          assert(it != promise_map_.end());
+          auto fufill_v = dp.Get<uint32_t>();
+          it->second.SetValue(fufill_v);
+          promise_map_.erase(it);
+          break;
+        }
       case PAGE:
-	{
-	  auto len = dp.Get<uint64_t>();
-	  auto iteration = dp.Get<uint64_t>();
-	  tem_buffer.push_back(len);
-	  tem_buffer.push_back(iteration);
-	  for(uint64_t i = 0; i < iteration; i++){
-	    tem_buffer.push_back(dp.Get<uint32_t>());
-	  }
-	  auto it = promise_map_.find(PAGE);
-	  assert(it != promise_map_.end());
-	  it->second.SetValue(SUCCESS);
-	  promise_map_.erase(it);
-	  break;
-	}
+        {
+          auto len = dp.Get<uint64_t>();
+          auto iteration = dp.Get<uint64_t>();
+          tem_buffer.push_back(len);
+          tem_buffer.push_back(iteration);
+          for(uint64_t i = 0; i < iteration; i++){
+            tem_buffer.push_back(dp.Get<uint32_t>());
+          }
+          auto it = promise_map_.find(PAGE);
+          assert(it != promise_map_.end());
+          it->second.SetValue(SUCCESS);
+          promise_map_.erase(it);
+          break;
+        }
       }
       break;
     }

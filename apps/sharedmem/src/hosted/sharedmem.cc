@@ -31,11 +31,13 @@ int main(int argc, char** argv) {
                         int signal_number) { c.io_service_.stop(); });
     Printer::Init().Then([bindir](ebbrt::Future<void> f) {
 	f.Get();
+	ebbrt::NodeAllocator::NodeArgs args = {};
+	args.cpus = (uint8_t) 2;
 	if (rm->size() == 0){
-	  ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
+	  ebbrt::node_allocator->AllocateNode(bindir.string(), args);
 	  std::chrono::seconds sec(20);
 	  std::this_thread::sleep_for(sec);
-	  ebbrt::node_allocator->AllocateNode(bindir.string(), 1);
+	  ebbrt::node_allocator->AllocateNode(bindir.string(), args);
 	}
       });
   }

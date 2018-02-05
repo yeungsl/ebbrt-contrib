@@ -6,6 +6,7 @@
 #include "Printer.h"
 #include "../pageFaultHandle.h"
 
+
 // a function to be called to invoke events in other cores
 void test(uintptr_t addr);
 // this function use a for loop to fill the physical page with desireed value
@@ -21,14 +22,19 @@ void AppMain() {
   int v = 0xDEADBEEF; // value that can be filled into the page
   int unmap = 0;//a flag for unmaping
 
+  ebbrt::kprintf("JOIN THE FRONT END. \n");
+  auto q_c = rm->QueryMaster(OWNERSHIP);
+  auto reply = q_c.Block().Get();
+  ebbrt::kprintf("GOT reply %d and code for MASTER is %d\n", reply, MASTER);
 
   //and allocate the virtual memory pages which will hit page fault when dereferrenced
-  printer->Print("BEGIN TO ALLOCATE THE VIRTUAL PAGE.\n");
+  //printer->Print("BEGIN TO ALLOCATE THE VIRTUAL PAGE.\n");
+  ebbrt::kprintf_force("start to allocate the page!!\n");
   auto pfn = ebbrt::page_allocator->Alloc(0);
   //create the instances of the page fault handler
   auto pf = std::make_unique<NewPageFaultHandler>();
   //put variables into the handler
-  pf->setPage(len, v, pfn);
+  pf->setPage(len, v, pfn, rm, reply);
   auto vfn = ebbrt::vmem_allocator->Alloc(mul*(1<<len), std::move(pf));
   auto addr = vfn.ToAddr();
   auto ptr = (volatile uint32_t *)addr;
