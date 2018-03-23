@@ -12,6 +12,8 @@ set(HOSTED_SOURCES
       src/pageFaultHandle.h
       src/RemoteMem.h
       src/RemoteMem.cc
+      src/Membership.h
+      src/Membership.cc
       src/hosted/sharedmem.cc
       src/hosted/Printer.cc)
 
@@ -19,6 +21,8 @@ set(BAREMETAL_SOURCES
       src/pageFaultHandle.h
       src/RemoteMem.h
       src/RemoteMem.cc
+      src/Membership.h
+      src/Membership.cc
       src/baremetal/sharedmem.cc
       src/baremetal/Printer.cc)
 

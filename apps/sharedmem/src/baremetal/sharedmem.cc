@@ -6,7 +6,6 @@
 #include "Printer.h"
 #include "../pageFaultHandle.h"
 
-
 // a function to be called to invoke events in other cores
 void test(uintptr_t addr);
 // this function use a for loop to fill the physical page with desireed value
@@ -14,7 +13,8 @@ void fillInValue(int value, int iteration, volatile uint32_t * ptr);
 //this function use a for loop to lazly invoked the page fault handler
 void lazyMap(int value, int iteration, int multiplier, volatile uint32_t * ptr);
 
-void AppMain() { 
+void AppMain() {
+  //ebbrt::kprintf("%d\n", ms->size());
   int len = 0; // number of pages need to be allocated physical allocator
   int mul = 1; // multipler for how many times more virtual pages to be allocated
   auto  ps = ebbrt::pmem::kPageSize; // page size by default
@@ -22,19 +22,27 @@ void AppMain() {
   int v = 0xDEADBEEF; // value that can be filled into the page
   int unmap = 0;//a flag for unmaping
 
+  //rm->Init();
+  ebbrt::kprintf("CREATING THE RM OBJECT WITH EBBID %d\n", kRemoteMEbbId);
+
+  auto instance = new RemoteMemory;
+  instance->Create(instance, kRemoteMEbbId);
+
   ebbrt::kprintf("JOIN THE FRONT END. \n");
-  auto q_c = rm->QueryMaster(OWNERSHIP);
-  auto reply = q_c.Block().Get();
+  auto q_get = rm->QueryMaster();
+  auto reply = q_get.Block().Get();
   ebbrt::kprintf("GOT reply %d and code for MASTER is %d\n", reply, MASTER);
 
+
   //and allocate the virtual memory pages which will hit page fault when dereferrenced
-  //printer->Print("BEGIN TO ALLOCATE THE VIRTUAL PAGE.\n");
-  ebbrt::kprintf_force("start to allocate the page!!\n");
+  printer->Print("BEGIN TO ALLOCATE THE VIRTUAL PAGE.\n");
+
   auto pfn = ebbrt::page_allocator->Alloc(0);
   //create the instances of the page fault handler
   auto pf = std::make_unique<NewPageFaultHandler>();
   //put variables into the handler
-  pf->setPage(len, v, pfn, rm, reply);
+  ebbrt::kprintf("The value of promise_aval before Page Fault: %d on core %d\n", rm->promise_aval, (size_t)ebbrt::Cpu::GetMine());
+  pf->setPage(len, v, pfn, reply);
   auto vfn = ebbrt::vmem_allocator->Alloc(mul*(1<<len), std::move(pf));
   auto addr = vfn.ToAddr();
   auto ptr = (volatile uint32_t *)addr;
@@ -74,7 +82,7 @@ void AppMain() {
 
 void test(uintptr_t addr) {
   auto ptr = (volatile uint32_t *)addr;
-  (void)*ptr;  
+  (void)*ptr;
 }
 
 void fillInValue(int value, int iteration, volatile uint32_t * ptr){

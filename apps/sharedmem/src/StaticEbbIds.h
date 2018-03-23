@@ -8,6 +8,6 @@
 #include <ebbrt/StaticIds.h>
 
 enum : ebbrt::EbbId { kPrinterEbbId = ebbrt::kFirstStaticUserId,
-    kRemoteMEbbId};
+                       kRemoteMEbbId, kMemberEbbId};
 
 #endif  // APPS_SHAREDMEM_SRC_STATICEBBIDS_H_

@@ -1,37 +1,47 @@
 #include <ebbrt/Future.h>
-#include "StaticEbbIds.h"
 #include <ebbrt/Message.h>
 #include <ebbrt/LocalIdMap.h>
 #include <ebbrt/Messenger.h>
 #include <ebbrt/Runtime.h>
 #include <ebbrt/Debug.h>
 #include "StaticEbbIds.h"
-#include <unordered_map>
-#include <boost/container/static_vector.hpp>
-#include <ebbrt/native/PMem.h>
-// Defining command for query master
-enum commands {PAGE, OWNERSHIP, FUFILL, SEND, MASTER, FOLLOWER, SUCCESS, CONNECT};
+#include <ebbrt/UniqueIOBuf.h>
+#include <ebbrt/IOBuf.h>
+#include <ebbrt/Cpu.h>
+#include <iostream>
+#include <sstream>
+#include <ebbrt/SharedEbb.h>
+#include "Membership.h"
+#ifdef __ebbrt__
+#include <ebbrt/native/Cpu.h>
+#include <ebbrt/native/VMemAllocator.h>
+#include <ebbrt/native/PageAllocator.h>
+#include <ebbrt/native/Runtime.h>
+#endif
 
-class RemoteMemory : public ebbrt::Messagable<RemoteMemory>{
+class RemoteMemory : public ebbrt::SharedEbb<RemoteMemory>, public ebbrt::Messagable<RemoteMemory>{
  private:
   std::mutex lock_;
-  std::vector<ebbrt::Messenger::NetworkId> nodelist;
   bool cached = false;
-  ebbrt::ExplicitlyConstructed<boost::container::static_vector<uint32_t, (int)ebbrt::pmem::kPageSize/4>> tem_buffer;
-  std::unordered_map<uint32_t, ebbrt::Promise<int>> promise_map_;
-  RemoteMemory() : ebbrt::Messagable<RemoteMemory>(kRemoteMEbbId), nodelist{} {}
-  void addTo(ebbrt::Messenger::NetworkId nid){
-    if (std::find(nodelist.begin(), nodelist.end(), nid) == nodelist.end()){
-      nodelist.push_back(nid);
-    }
-  }
+#ifdef __ebbrt__
+  uint64_t page_len;
+
+  ebbrt::Pfn pfn_;
+  uint64_t page_iteration;
   void sendPage(ebbrt::Messenger::NetworkId dst);
+  ebbrt::Messenger::NetworkId FrontendId = ebbrt::Messenger::NetworkId(ebbrt::runtime::Frontend());
+#endif
+
+  std::unique_ptr<ebbrt::Promise<int>> promise = std::make_unique<ebbrt::Promise<int>>();
+
  public:
+  RemoteMemory() : ebbrt::Messagable<RemoteMemory>(kRemoteMEbbId) {}
   void ReceiveMessage(ebbrt::Messenger::NetworkId nid, std::unique_ptr<ebbrt::IOBuf>&& buffer);
-  static RemoteMemory & HandleFault(ebbrt::EbbId id);
-  ebbrt::Future<int> QueryMaster(int command);
-  int size(){ return int(nodelist.size()); }
-  void fetchPage(volatile uint32_t* pptr);
-  void cachePage(uint64_t len, volatile uint32_t * pptr, uint64_t iteration);
+  bool promise_aval = true;
+#ifdef __ebbrt__
+  ebbrt::Future<int> QueryMaster();
+  ebbrt::Pfn fetchPage();
+  void cachePage(uint64_t len, ebbrt::Pfn pfn, uint64_t iteration);
+#endif
 };
 constexpr auto rm = ebbrt::EbbRef<RemoteMemory>(kRemoteMEbbId);
